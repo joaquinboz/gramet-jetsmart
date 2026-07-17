@@ -292,58 +292,48 @@ def obtener_gramet():
                 page.click("input[type='submit']")
                 page.wait_for_load_state("load", timeout=60000)
                 
-                # 4. Esperar hasta que una imagen grande esté COMPLETAMENTE cargada
-                #    (el GRAMET tarda en generarse, hasta 90 segundos)
-                try:
-                    page.wait_for_function(
-                        "() => Array.from(document.images).some(i => i.complete && i.naturalWidth > 300)",
-                        timeout=90000
-                    )
-                except Exception:
-                    print("Advertencia: la imagen no terminó de cargar en 90s")
+                # 4. Buscar específicamente la imagen del GRAMET
+                #    (su ruta contiene 'gramet' o '/tmp/', NO el logo del sitio)
+                page.wait_for_selector("img", timeout=30000)
                 
-                # Elegir la imagen cargada más grande (esa es el GRAMET)
-                img_element = None
-                best_width = 0
-                for img in page.query_selector_all("img"):
-                    try:
-                        w = img.evaluate("i => (i.complete ? i.naturalWidth : 0)")
-                    except Exception:
-                        w = 0
-                    if w and w > best_width:
-                        best_width = w
-                        img_element = img
+                gramet_src = None
+                for intento in range(10):
+                    for img in page.query_selector_all("img"):
+                        src = img.get_attribute("src") or ""
+                        if "gramet" in src.lower() or "/tmp/" in src.lower():
+                            gramet_src = src
+                            break
+                    if gramet_src:
+                        break
+                    time.sleep(3)
                 
-                print(f"Imagen elegida, ancho: {best_width}px")
-                
-                if img_element is None:
+                if not gramet_src:
                     browser.close()
-                    return jsonify({'success': False, 'message': 'No se encontró imagen GRAMET en resultados'})
+                    return jsonify({'success': False, 'message': 'No se encontró la imagen GRAMET en la página de resultados'})
                 
-                # 5. Descargar la imagen real desde OGIMET (con reintentos,
-                #    porque el GRAMET tarda unos segundos en generarse)
                 from urllib.parse import urljoin
-                src = img_element.get_attribute("src") or ""
-                abs_url = urljoin("https://www.ogimet.com/", src)
-                print(f"Descargando imagen: {abs_url}")
+                abs_url = urljoin("https://www.ogimet.com/", gramet_src)
+                print(f"Imagen GRAMET: {abs_url}")
                 
+                # 5. Descargar la imagen (OGIMET tarda en generarla,
+                #    reintentar hasta ~2 minutos)
                 img_bytes = None
-                for intento in range(8):
+                for intento in range(24):
                     try:
                         resp = page.context.request.get(abs_url)
                         content_type = resp.headers.get("content-type", "")
                         body = resp.body()
-                        if resp.ok and "image" in content_type and len(body) > 5000:
+                        if resp.ok and "image" in content_type and len(body) > 10000:
                             img_bytes = body
                             break
                     except Exception:
                         pass
-                    print(f"Imagen aún no lista, reintento {intento+1}/8...")
+                    print(f"GRAMET aún generándose... {intento+1}/24")
                     time.sleep(5)
                 
                 if img_bytes is None:
-                    # Último recurso: captura de pantalla del elemento
-                    img_bytes = img_element.screenshot()
+                    browser.close()
+                    return jsonify({'success': False, 'message': 'OGIMET no generó la imagen a tiempo. Intenta de nuevo en unos minutos.'})
                 
                 img_b64 = base64.b64encode(img_bytes).decode('utf-8')
                 
