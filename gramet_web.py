@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from flask import Flask, render_template_string, request, jsonify
-import requests
 import time
 
 app = Flask(__name__)
@@ -136,7 +135,6 @@ def index():
         function seleccionar(btn, cruce, direccion) {
             const key = cruce + '_' + direccion;
             
-            // Toggle: si ya está seleccionado, deseleccionar
             if (crucesSeleccionados[key]) {
                 delete crucesSeleccionados[key];
                 btn.classList.remove('active');
@@ -171,42 +169,19 @@ def index():
                 return;
             }
             
-            const btn = document.querySelector('.btn-obtener');
-            btn.disabled = true;
             document.getElementById('estado').className = 'estado loading';
-            document.getElementById('estado').textContent = '⏳ Obteniendo GRAMET...';
+            document.getElementById('estado').textContent = '⏳ Abriendo GRAMET...';
             
-            const solicitudes = Object.values(crucesSeleccionados).map(({ cruce, direccion }) => {
-                return fetch('/obtener-gramet', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        gramet: cruce,
-                        nombre: cruce + ' (' + direccion + ')',
-                        horas: horasSeleccionadas
-                    })
-                }).then(r => r.json());
-            });
+            // Abrir primer cruce en OGIMET
+            const primero = Object.values(crucesSeleccionados)[0];
+            const url = `https://www.ogimet.com/cgi-bin/gramet_aero?stids=${primero.cruce}&hours=${horasSeleccionadas}&min=${horasSeleccionadas}&flevel=250`;
             
-            Promise.all(solicitudes)
-                .then(datos => {
-                    const exitos = datos.filter(d => d.success).length;
-                    document.getElementById('estado').className = 'estado success';
-                    document.getElementById('estado').textContent = `✓ ${exitos}/${datos.length} GRAMET obtenidos`;
-                    
-                    // Abrir primer GRAMET en nueva pestaña
-                    if (exitos > 0 && datos[0].url) {
-                        window.open(datos[0].url, '_blank');
-                    }
-                    
-                    btn.disabled = false;
-                    setTimeout(() => { document.getElementById('estado').textContent = ''; }, 3000);
-                })
-                .catch(err => {
-                    document.getElementById('estado').className = 'estado error';
-                    document.getElementById('estado').textContent = '❌ Error: ' + err.message;
-                    btn.disabled = false;
-                });
+            window.open(url, '_blank');
+            
+            document.getElementById('estado').className = 'estado success';
+            document.getElementById('estado').textContent = `✓ GRAMET abierto en OGIMET`;
+            
+            setTimeout(() => { document.getElementById('estado').textContent = ''; }, 2000);
         }
     </script>
 </body>
@@ -221,44 +196,15 @@ def obtener_gramet():
         nombre = data.get('nombre')
         horas = data.get('horas')
         
-        print(f"\n[{time.strftime('%H:%M:%S')}] Solicitud GRAMET: {nombre} ({gramet}) - {horas}h")
+        print(f"\n[{time.strftime('%H:%M:%S')}] {nombre}")
         
-        # Construir URL de OGIMET
+        # Solo generar URL, sin verificar
         ogimet_url = f"https://www.ogimet.com/cgi-bin/gramet_aero?stids={gramet}&hours={horas}&min={horas}&flevel=250"
-        print(f"URL: {ogimet_url}")
         
-        # Hacer solicitud HTTP a OGIMET para verificar
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-            response = requests.get(ogimet_url, headers=headers, timeout=15)
-            print(f"Status: {response.status_code}")
-            
-            if response.status_code == 200:
-                print(f"✓ GRAMET obtenido: {nombre}")
-                return jsonify({'success': True, 'message': nombre, 'url': ogimet_url})
-            else:
-                error_msg = f'HTTP {response.status_code}'
-                print(f"❌ {error_msg}")
-                return jsonify({'success': False, 'message': error_msg})
-        except requests.exceptions.Timeout:
-            error_msg = 'Timeout - OGIMET tardó demasiado'
-            print(f"❌ {error_msg}")
-            return jsonify({'success': False, 'message': error_msg})
-        except requests.exceptions.ConnectionError as e:
-            error_msg = f'Error de conexión: {str(e)}'
-            print(f"❌ {error_msg}")
-            return jsonify({'success': False, 'message': error_msg})
-        except requests.exceptions.RequestException as e:
-            error_msg = f'Error: {str(e)}'
-            print(f"❌ {error_msg}")
-            return jsonify({'success': False, 'message': error_msg})
+        return jsonify({'success': True, 'message': nombre, 'url': ogimet_url})
             
     except Exception as e:
-        error_msg = f'Error interno: {str(e)}'
-        print(f"❌ {error_msg}")
-        return jsonify({'success': False, 'message': error_msg})
+        return jsonify({'success': False, 'message': str(e)})
 
 if __name__ == '__main__':
     import os
