@@ -292,25 +292,29 @@ def obtener_gramet():
                 page.click("input[type='submit']")
                 page.wait_for_load_state("load", timeout=60000)
                 
-                # 4. Buscar la imagen GRAMET en la página de resultados
-                page.wait_for_selector("img", timeout=30000)
-                time.sleep(2)
+                # 4. Esperar hasta que una imagen grande esté COMPLETAMENTE cargada
+                #    (el GRAMET tarda en generarse, hasta 90 segundos)
+                try:
+                    page.wait_for_function(
+                        "() => Array.from(document.images).some(i => i.complete && i.naturalWidth > 300)",
+                        timeout=90000
+                    )
+                except Exception:
+                    print("Advertencia: la imagen no terminó de cargar en 90s")
                 
+                # Elegir la imagen cargada más grande (esa es el GRAMET)
                 img_element = None
+                best_width = 0
                 for img in page.query_selector_all("img"):
-                    src = img.get_attribute("src") or ""
-                    if "gramet" in src.lower() or "display" in src.lower():
+                    try:
+                        w = img.evaluate("i => (i.complete ? i.naturalWidth : 0)")
+                    except Exception:
+                        w = 0
+                    if w and w > best_width:
+                        best_width = w
                         img_element = img
-                        break
                 
-                # Si no encontró por src, usar la imagen más grande
-                if img_element is None:
-                    max_area = 0
-                    for img in page.query_selector_all("img"):
-                        box = img.bounding_box()
-                        if box and box["width"] * box["height"] > max_area:
-                            max_area = box["width"] * box["height"]
-                            img_element = img
+                print(f"Imagen elegida, ancho: {best_width}px")
                 
                 if img_element is None:
                     browser.close()
