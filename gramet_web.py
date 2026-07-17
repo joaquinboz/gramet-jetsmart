@@ -174,7 +174,7 @@ def index():
             
             // Abrir primer cruce en OGIMET
             const primero = Object.values(crucesSeleccionados)[0];
-            const url = `https://www.ogimet.com/cgi-bin/gramet_aero?stids=${primero.cruce}&hours=${horasSeleccionadas}&min=${horasSeleccionadas}&flevel=250`;
+            const url = `https://www.ogimet.com/gramet_aero.phtml?stids=${primero.cruce}&hours=${horasSeleccionadas}`;
             
             window.open(url, '_blank');
             
