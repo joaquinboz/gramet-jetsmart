@@ -206,15 +206,20 @@ def index():
                         nombre: cruce + ' (' + direccion + ')',
                         horas: horasSeleccionadas
                     })
-                });
+                }).then(r => r.json());
             });
             
             Promise.all(solicitudes)
-                .then(responses => Promise.all(responses.map(r => r.json())))
                 .then(datos => {
                     const exitos = datos.filter(d => d.success).length;
                     document.getElementById('estado').className = 'estado success';
-                    document.getElementById('estado').textContent = `✓ ${exitos}/${datos.length} GRAMET obtenidos`;
+                    document.getElementById('estado').textContent = `✓ ${exitos}/${datos.length} GRAMET obtenidos - Abriendo...`;
+                    
+                    // Abrir primero GRAMET en nueva pestaña
+                    if (exitos > 0 && datos[0].url) {
+                        window.open(datos[0].url, '_blank');
+                    }
+                    
                     btn.disabled = false;
                     setTimeout(() => { document.getElementById('estado').textContent = ''; }, 3000);
                 })
@@ -239,26 +244,16 @@ def obtener_gramet():
         
         print(f"\n[{time.strftime('%H:%M:%S')}] Solicitud GRAMET: {nombre}")
         
-        # Hacer solicitud HTTP a OGIMET
-        url = 'https://www.ogimet.com/cgi-bin/gramet_aero'
-        params = {
-            'stids': gramet,
-            'hours': horas,
-            'min': horas,
-            'flevel': '250'
-        }
+        # Construir URL de OGIMET
+        ogimet_url = f"https://www.ogimet.com/cgi-bin/gramet_aero?stids={gramet}&hours={horas}&min={horas}&flevel=250"
         
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        
+        # Hacer solicitud HTTP a OGIMET para verificar
         try:
-            response = requests.get(url, params=params, headers=headers, timeout=10)
-            response.raise_for_status()
+            response = requests.get(ogimet_url, timeout=10)
             
             if response.status_code == 200:
                 print(f"✓ GRAMET obtenido: {nombre}")
-                return jsonify({'success': True, 'message': nombre, 'url': response.url})
+                return jsonify({'success': True, 'message': nombre, 'url': ogimet_url})
             else:
                 return jsonify({'success': False, 'message': f'Error HTTP {response.status_code}'})
         except requests.exceptions.RequestException as e:
