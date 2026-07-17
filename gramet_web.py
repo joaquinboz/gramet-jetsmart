@@ -316,8 +316,31 @@ def obtener_gramet():
                     browser.close()
                     return jsonify({'success': False, 'message': 'No se encontró imagen GRAMET en resultados'})
                 
-                # 5. Capturar la imagen
-                img_bytes = img_element.screenshot()
+                # 5. Descargar la imagen real desde OGIMET (con reintentos,
+                #    porque el GRAMET tarda unos segundos en generarse)
+                from urllib.parse import urljoin
+                src = img_element.get_attribute("src") or ""
+                abs_url = urljoin("https://www.ogimet.com/", src)
+                print(f"Descargando imagen: {abs_url}")
+                
+                img_bytes = None
+                for intento in range(8):
+                    try:
+                        resp = page.context.request.get(abs_url)
+                        content_type = resp.headers.get("content-type", "")
+                        body = resp.body()
+                        if resp.ok and "image" in content_type and len(body) > 5000:
+                            img_bytes = body
+                            break
+                    except Exception:
+                        pass
+                    print(f"Imagen aún no lista, reintento {intento+1}/8...")
+                    time.sleep(5)
+                
+                if img_bytes is None:
+                    # Último recurso: captura de pantalla del elemento
+                    img_bytes = img_element.screenshot()
+                
                 img_b64 = base64.b64encode(img_bytes).decode('utf-8')
                 
                 browser.close()
