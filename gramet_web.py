@@ -221,26 +221,44 @@ def obtener_gramet():
         nombre = data.get('nombre')
         horas = data.get('horas')
         
-        print(f"\n[{time.strftime('%H:%M:%S')}] Solicitud GRAMET: {nombre}")
+        print(f"\n[{time.strftime('%H:%M:%S')}] Solicitud GRAMET: {nombre} ({gramet}) - {horas}h")
         
         # Construir URL de OGIMET
         ogimet_url = f"https://www.ogimet.com/cgi-bin/gramet_aero?stids={gramet}&hours={horas}&min={horas}&flevel=250"
+        print(f"URL: {ogimet_url}")
         
         # Hacer solicitud HTTP a OGIMET para verificar
         try:
-            response = requests.get(ogimet_url, timeout=10)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            response = requests.get(ogimet_url, headers=headers, timeout=15)
+            print(f"Status: {response.status_code}")
             
             if response.status_code == 200:
                 print(f"✓ GRAMET obtenido: {nombre}")
                 return jsonify({'success': True, 'message': nombre, 'url': ogimet_url})
             else:
-                return jsonify({'success': False, 'message': f'Error HTTP {response.status_code}'})
+                error_msg = f'HTTP {response.status_code}'
+                print(f"❌ {error_msg}")
+                return jsonify({'success': False, 'message': error_msg})
+        except requests.exceptions.Timeout:
+            error_msg = 'Timeout - OGIMET tardó demasiado'
+            print(f"❌ {error_msg}")
+            return jsonify({'success': False, 'message': error_msg})
+        except requests.exceptions.ConnectionError as e:
+            error_msg = f'Error de conexión: {str(e)}'
+            print(f"❌ {error_msg}")
+            return jsonify({'success': False, 'message': error_msg})
         except requests.exceptions.RequestException as e:
-            return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+            error_msg = f'Error: {str(e)}'
+            print(f"❌ {error_msg}")
+            return jsonify({'success': False, 'message': error_msg})
             
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)})
+        error_msg = f'Error interno: {str(e)}'
+        print(f"❌ {error_msg}")
+        return jsonify({'success': False, 'message': error_msg})
 
 if __name__ == '__main__':
     import os
