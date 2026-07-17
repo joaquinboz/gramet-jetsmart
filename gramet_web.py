@@ -5,8 +5,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.edge.service import Service
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
 
@@ -214,14 +214,16 @@ def obtener_gramet():
         
         # Crear driver solo si no existe
         if driver_global is None:
-            options = webdriver.EdgeOptions()
+            options = webdriver.ChromeOptions()
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
             options.add_experimental_option("detach", True)
             options.add_argument("--disable-blink-features=AutomationControlled")
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             options.add_experimental_option('useAutomationExtension', False)
             
-            driver_global = webdriver.Edge(
-                service=Service(EdgeChromiumDriverManager().install()),
+            driver_global = webdriver.Chrome(
+                service=Service(ChromeDriverManager().install()),
                 options=options
             )
         
