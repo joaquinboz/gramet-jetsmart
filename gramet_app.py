@@ -60,7 +60,9 @@ def index():
         .status { font-size: 10px; color: #666; margin-bottom: 6px; }
         .status.active { color: #0c7eb0; font-weight: bold; }
         .btn-obtener { width: 100%; padding: 8px; background: #0c7eb0; color: white; border: none; border-radius: 3px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .footer { background: #e0e0e0; text-align: center; padding: 8px; font-size: 8px; color: #666; margin-top: 8px; }
+        .footer { background: #e0e0e0; text-align: center; padding: 8px 10px; font-size: 8px; color: #666; margin-top: 8px; position: relative; }
+        .footer .disclaimer { max-width: 700px; margin: 0 auto; line-height: 1.4; }
+        .footer .firma { position: absolute; right: 6px; bottom: 3px; font-size: 8px; color: #bbb; letter-spacing: 1px; opacity: 0.6; }
     </style>
 </head>
 <body>
@@ -114,7 +116,11 @@ def index():
                 <button class="hora-btn" onclick="setHoras(4)">4</button>
                 <button class="hora-btn" onclick="setHoras(5)">5</button>
                 <button class="hora-btn" onclick="setHoras(6)">6</button>
-                <label>Manual: <input type="number" id="horasManual" class="manual-input" value="0" min="0" max="23"></label>
+                <button class="hora-btn" onclick="setHoras(8)">8</button>
+                <button class="hora-btn" onclick="setHoras(10)">10</button>
+                <button class="hora-btn" onclick="setHoras(12)">12</button>
+                <button class="hora-btn" onclick="setHoras(24)">24</button>
+                <label>Manual: <input type="number" id="horasManual" class="manual-input" value="0" min="0" max="24"></label>
             </div>
             <div class="status" id="status">Selecciona un cruce</div>
             <button class="btn-obtener" onclick="obtenerGramet()">Obtener GRAMET</button>
@@ -122,7 +128,8 @@ def index():
     </div>
 
     <div class="footer">
-        JetSMART Operations | OGIMET
+        <div class="disclaimer">La informaci&oacute;n presentada es de car&aacute;cter referencial. Es responsabilidad del piloto y del despachador verificar su vigencia y autenticidad en las fuentes oficiales antes de su uso operacional.</div>
+        <div class="firma">JBOZ</div>
     </div>
 
     <script>
