@@ -63,6 +63,15 @@ def index():
         .footer { background: #e0e0e0; text-align: center; padding: 8px 10px; font-size: 8px; color: #666; margin-top: 8px; position: relative; }
         .footer .disclaimer { max-width: 700px; margin: 0 auto; line-height: 1.4; }
         .footer .firma { position: absolute; right: 6px; bottom: 3px; font-size: 8px; color: #bbb; letter-spacing: 1px; opacity: 0.6; }
+        #resultados { margin-top: 6px; }
+        .grupo { margin-bottom: 12px; }
+        .grupo-titulo { font-size: 12px; font-weight: bold; color: #0c3c7d; margin: 12px 0 6px 0; border-bottom: 2px solid #0c3c7d; padding-bottom: 3px; }
+        .resultado { background: white; border-radius: 6px; padding: 8px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .resultado-cap { font-size: 12px; font-weight: bold; margin-bottom: 6px; }
+        .resultado-cap.oe { color: #0c7eb0; }
+        .resultado-cap.eo { color: #ff9800; }
+        .resultado-msg { font-size: 11px; color: #ff9800; padding: 18px; text-align: center; }
+        .resultado img { width: 100%; height: auto; display: none; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -76,17 +85,17 @@ def index():
             <div class="columna">
                 <div class="flecha oe-flecha">-&gt;</div>
                 <div class="columna-titulo oe-titulo">O-&gt;E</div>
-                <button class="cruce-btn" data-codigo="SCAT_SANC" data-nombre="GEKAL (O-&gt;E)" onclick="seleccionar(this)">GEKAL</button>
-                <button class="cruce-btn" data-codigo="SCSE_SANU" data-nombre="MIBAS (O-&gt;E)" onclick="seleccionar(this)">MIBAS</button>
-                <button class="cruce-btn" data-codigo="SCVM_SANU" data-nombre="GUVOL (O-&gt;E)" onclick="seleccionar(this)">GUVOL</button>
+                <button class="cruce-btn" data-zona="Norte" data-codigo="SCAT_SANC" data-nombre="GEKAL (O-&gt;E)" onclick="seleccionar(this)">GEKAL</button>
+                <button class="cruce-btn" data-zona="Norte" data-codigo="SCSE_SANU" data-nombre="MIBAS (O-&gt;E)" onclick="seleccionar(this)">MIBAS</button>
+                <button class="cruce-btn" data-zona="Norte" data-codigo="SCVM_SANU" data-nombre="GUVOL (O-&gt;E)" onclick="seleccionar(this)">GUVOL</button>
             </div>
             <div class="columna">
                 <div class="flecha eo-flecha">&lt;-</div>
                 <div class="columna-titulo eo-titulo">E-&gt;O</div>
-                <button class="cruce-btn" data-codigo="SANC_SCAT" data-nombre="GEKAL (E-&gt;O)" onclick="seleccionar(this)">GEKAL</button>
-                <button class="cruce-btn" data-codigo="SANU_SCSE" data-nombre="MIBAS (E-&gt;O)" onclick="seleccionar(this)">MIBAS</button>
-                <button class="cruce-btn" data-codigo="SANU_SCVM" data-nombre="ASIMO (E-&gt;O)" onclick="seleccionar(this)">ASIMO</button>
-                <button class="cruce-btn" data-codigo="SAME_SCVM" data-nombre="UMKAL (E-&gt;O)" onclick="seleccionar(this)">UMKAL</button>
+                <button class="cruce-btn" data-zona="Norte" data-codigo="SANC_SCAT" data-nombre="GEKAL (E-&gt;O)" onclick="seleccionar(this)">GEKAL</button>
+                <button class="cruce-btn" data-zona="Norte" data-codigo="SANU_SCSE" data-nombre="MIBAS (E-&gt;O)" onclick="seleccionar(this)">MIBAS</button>
+                <button class="cruce-btn" data-zona="Norte" data-codigo="SANU_SCVM" data-nombre="ASIMO (E-&gt;O)" onclick="seleccionar(this)">ASIMO</button>
+                <button class="cruce-btn" data-zona="Norte" data-codigo="SAME_SCVM" data-nombre="UMKAL (E-&gt;O)" onclick="seleccionar(this)">UMKAL</button>
             </div>
         </div>
 
@@ -95,14 +104,14 @@ def index():
             <div class="columna">
                 <div class="flecha oe-flecha">-&gt;</div>
                 <div class="columna-titulo oe-titulo">O-&gt;E</div>
-                <button class="cruce-btn" data-codigo="SCEL_SAMR" data-nombre="NEBEG (O-&gt;E)" onclick="seleccionar(this)">NEBEG</button>
-                <button class="cruce-btn" data-codigo="SCRG_SAME" data-nombre="ALBAL (O-&gt;E)" onclick="seleccionar(this)">ALBAL</button>
-                <button class="cruce-btn" data-codigo="SCIC_SAMM" data-nombre="ANKON (O-&gt;E)" onclick="seleccionar(this)">ANKON</button>
+                <button class="cruce-btn" data-zona="Sur" data-codigo="SCEL_SAMR" data-nombre="NEBEG (O-&gt;E)" onclick="seleccionar(this)">NEBEG</button>
+                <button class="cruce-btn" data-zona="Sur" data-codigo="SCRG_SAME" data-nombre="ALBAL (O-&gt;E)" onclick="seleccionar(this)">ALBAL</button>
+                <button class="cruce-btn" data-zona="Sur" data-codigo="SCIC_SAMM" data-nombre="ANKON (O-&gt;E)" onclick="seleccionar(this)">ANKON</button>
             </div>
             <div class="columna">
                 <div class="flecha eo-flecha">&lt;-</div>
                 <div class="columna-titulo eo-titulo">E-&gt;O</div>
-                <button class="cruce-btn" data-codigo="SAMM_SCIC" data-nombre="ANKON (E-&gt;O)" onclick="seleccionar(this)">ANKON</button>
+                <button class="cruce-btn" data-zona="Sur" data-codigo="SAMM_SCIC" data-nombre="ANKON (E-&gt;O)" onclick="seleccionar(this)">ANKON</button>
             </div>
         </div>
 
@@ -122,9 +131,11 @@ def index():
                 <button class="hora-btn" onclick="setHoras(24)">24</button>
                 <label>Manual: <input type="number" id="horasManual" class="manual-input" value="0" min="0" max="24"></label>
             </div>
-            <div class="status" id="status">Selecciona un cruce</div>
+            <div class="status" id="status">Selecciona uno o m&aacute;s cruces</div>
             <button class="btn-obtener" onclick="obtenerGramet()">Obtener GRAMET</button>
         </div>
+
+        <div id="resultados"></div>
     </div>
 
     <div class="footer">
@@ -133,29 +144,45 @@ def index():
     </div>
 
     <script>
-    var cruce_seleccionado = '';
-    var nombre_cruce = '';
+    // Lista de cruces seleccionados: {codigo, nombre, zona, sentido, btn}
+    var seleccionados = [];
+    var cola = [];      // imagenes por cargar, en orden
+    var idxCarga = 0;
 
     function seleccionar(btn) {
         var codigo = btn.getAttribute('data-codigo');
         var nombre = btn.getAttribute('data-nombre');
+        var zona = btn.getAttribute('data-zona');
+        var sentido = (nombre.indexOf('O->E') > -1) ? 'oe' : 'eo';
 
-        var todos = document.querySelectorAll('.cruce-btn');
-        for (var i = 0; i < todos.length; i++) {
-            todos[i].classList.remove('selected-oe', 'selected-eo');
+        // Buscar si ya estaba seleccionado
+        var idx = -1;
+        for (var i = 0; i < seleccionados.length; i++) {
+            if (seleccionados[i].btn === btn) { idx = i; break; }
         }
 
-        cruce_seleccionado = codigo;
-        nombre_cruce = nombre;
-
-        if (nombre.indexOf('O-&gt;E') > -1 || nombre.indexOf('O->E') > -1) {
-            btn.classList.add('selected-oe');
+        if (idx > -1) {
+            // Deseleccionar
+            seleccionados.splice(idx, 1);
+            btn.classList.remove('selected-oe', 'selected-eo');
         } else {
-            btn.classList.add('selected-eo');
+            // Seleccionar
+            seleccionados.push({codigo: codigo, nombre: nombre, zona: zona, sentido: sentido, btn: btn});
+            btn.classList.add(sentido === 'oe' ? 'selected-oe' : 'selected-eo');
         }
 
-        document.getElementById('status').textContent = 'OK: ' + nombre;
-        document.getElementById('status').classList.add('active');
+        actualizarStatus();
+    }
+
+    function actualizarStatus() {
+        var s = document.getElementById('status');
+        if (seleccionados.length === 0) {
+            s.textContent = 'Selecciona uno o más cruces';
+            s.classList.remove('active');
+        } else {
+            s.textContent = seleccionados.length + ' cruce(s) seleccionado(s)';
+            s.classList.add('active');
+        }
     }
 
     function setHoras(h) {
@@ -168,16 +195,84 @@ def index():
     }
 
     function obtenerGramet() {
-        if (!cruce_seleccionado) {
-            alert('Selecciona un cruce');
+        if (seleccionados.length === 0) {
+            alert('Selecciona al menos un cruce');
             return;
         }
         var horas = document.getElementById('horasManual').value;
-        // Abrir en PESTANA NUEVA el visor
-        var url = '/ver?icao=' + encodeURIComponent(cruce_seleccionado) +
-                  '&horas=' + encodeURIComponent(horas) +
-                  '&nombre=' + encodeURIComponent(nombre_cruce);
-        window.open(url, '_blank');
+        var cont = document.getElementById('resultados');
+        cont.innerHTML = '';
+        cola = [];
+        idxCarga = 0;
+
+        // Agrupar por zona: Norte primero, luego Sur
+        var orden = ['Norte', 'Sur'];
+        for (var z = 0; z < orden.length; z++) {
+            var zona = orden[z];
+            var delZona = seleccionados.filter(function(x) { return x.zona === zona; });
+            if (delZona.length === 0) continue;
+
+            var grupo = document.createElement('div');
+            grupo.className = 'grupo';
+
+            var titulo = document.createElement('div');
+            titulo.className = 'grupo-titulo';
+            titulo.textContent = 'ZONA ' + zona.toUpperCase();
+            grupo.appendChild(titulo);
+
+            for (var i = 0; i < delZona.length; i++) {
+                var it = delZona[i];
+
+                var bloque = document.createElement('div');
+                bloque.className = 'resultado';
+
+                var cap = document.createElement('div');
+                cap.className = 'resultado-cap ' + it.sentido;
+                cap.textContent = it.nombre.replace('->', '\u2192') + '  ·  +' + horas + 'h';
+                bloque.appendChild(cap);
+
+                var msg = document.createElement('div');
+                msg.className = 'resultado-msg';
+                msg.textContent = 'En cola...';
+                bloque.appendChild(msg);
+
+                var img = document.createElement('img');
+                img.setAttribute('data-src',
+                    '/gramet?icao=' + encodeURIComponent(it.codigo) +
+                    '&horas=' + encodeURIComponent(horas));
+                (function(imgEl, msgEl) {
+                    imgEl.onload = function() {
+                        msgEl.style.display = 'none';
+                        imgEl.style.display = 'block';
+                        cargarSiguiente();
+                    };
+                    imgEl.onerror = function() {
+                        msgEl.textContent = 'No se pudo generar. Reintenta más tarde.';
+                        cargarSiguiente();
+                    };
+                })(img, msg);
+                bloque.appendChild(img);
+
+                grupo.appendChild(bloque);
+                cola.push({img: img, msg: msg});
+            }
+            cont.appendChild(grupo);
+        }
+
+        // Arrancar la carga secuencial
+        cargarActual();
+    }
+
+    function cargarActual() {
+        if (idxCarga >= cola.length) return;
+        var item = cola[idxCarga];
+        item.msg.textContent = 'Generando GRAMET... (OGIMET puede tardar unos segundos)';
+        item.img.src = item.img.getAttribute('data-src');
+    }
+
+    function cargarSiguiente() {
+        idxCarga++;
+        cargarActual();
     }
     </script>
 </body>
