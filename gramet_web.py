@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 from flask import Flask, render_template_string, request, jsonify
-import base64
 import time
+import webbrowser
+import threading
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.edge.service import Service
+from selenium.webdriver.edge.options import Options
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 app = Flask(__name__)
+
+# Driver global que se reutiliza entre solicitudes
+driver_global = None
 
 @app.route('/')
 def index():
@@ -15,343 +26,309 @@ def index():
     <title>GRAMET - JetSMART</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header h1 { font-size: 24px; color: #0c7eb0; }
-        .header p { color: #666; margin-top: 5px; }
-        
-        .zona { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .zona-title { font-size: 18px; font-weight: bold; color: #0c7eb0; margin-bottom: 15px; }
-        
-        .columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
-        .columna.oe { border-left: 4px solid #0c7eb0; }
-        .columna.eo { border-left: 4px solid #ff9800; }
-        
-        .columna-titulo { font-weight: bold; margin-bottom: 10px; padding-left: 10px; }
-        .columna.oe .columna-titulo { color: #0c7eb0; }
-        .columna.eo .columna-titulo { color: #ff9800; }
-        
-        .cruce-btn { width: 100%; padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; text-align: left; transition: all 0.2s; }
-        .cruce-btn:hover { background: #f9f9f9; border-color: #999; }
-        .columna.oe .cruce-btn.active { background: #0c7eb0; color: white; border-color: #0c7eb0; }
-        .columna.eo .cruce-btn.active { background: #ff9800; color: white; border-color: #ff9800; }
-        
-        .controles { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        
-        .horas-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 15px; }
-        .hora-btn { padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; text-align: center; transition: all 0.2s; }
-        .hora-btn:hover { border-color: #0c7eb0; }
-        .hora-btn.active { background: #0c7eb0; color: white; border-color: #0c7eb0; }
-        
-        .btn-obtener { width: 100%; padding: 14px; background: #0c7eb0; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: all 0.2s; }
-        .btn-obtener:hover { background: #0a5a8f; }
-        .btn-obtener:disabled { background: #ccc; cursor: not-allowed; }
-        
-        .seleccionado { padding: 12px; background: #e3f2fd; border-left: 4px solid #0c7eb0; margin-bottom: 15px; border-radius: 4px; }
-        .seleccionado strong { color: #0c7eb0; }
-        
-        .estado { text-align: center; margin-top: 10px; min-height: 30px; }
-        .estado.success { color: #4caf50; }
-        .estado.error { color: #f44336; }
-        .estado.loading { color: #ff9800; }
-        
-        .resultados { margin-top: 20px; }
-        .resultado { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .resultado h3 { color: #0c7eb0; margin-bottom: 10px; }
-        .resultado img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
-        .resultado .hint { color: #999; font-size: 12px; margin-top: 5px; }
-        
-        @media (max-width: 600px) {
-            .columnas { grid-template-columns: 1fr; }
-        }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .header { background: #0c3c7d; color: white; padding: 8px; text-align: center; }
+        .header h1 { font-size: 16px; margin: 0; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 10px; }
+        .zona-titulo { font-size: 12px; font-weight: bold; color: #0c3c7d; margin: 8px 0 6px 0; }
+        .zona-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+        .columna { background: white; border-radius: 6px; padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .columna-titulo { font-size: 11px; font-weight: bold; text-align: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e0e0e0; }
+        .oe-titulo { color: #0c7eb0; }
+        .eo-titulo { color: #ff9800; }
+        .flecha { font-size: 16px; text-align: center; margin-bottom: 4px; font-weight: bold; }
+        .oe-flecha { color: #0c7eb0; }
+        .eo-flecha { color: #ff9800; }
+        .cruce-btn { display: block; width: 100%; padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 3px; background: white; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; }
+        .cruce-btn:hover { border-color: #0c7eb0; background: #f0f7ff; }
+        .cruce-btn.selected-oe { background: #0c7eb0 !important; color: white !important; border-color: #0c7eb0 !important; }
+        .cruce-btn.selected-eo { background: #ff9800 !important; color: white !important; border-color: #ff9800 !important; }
+        .controles { background: #e3f2fd; padding: 10px; border-radius: 6px; margin: 8px 0; }
+        .control-label { font-size: 10px; font-weight: bold; color: #0c3c7d; margin-bottom: 4px; display: block; }
+        .horas-botones { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+        .hora-btn { padding: 4px 8px; background: white; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; font-size: 10px; font-weight: bold; color: #0c3c7d; }
+        .hora-btn:hover { border-color: #0c7eb0; background: #f0f7ff; }
+        .hora-btn.selected-hora { background: #0c7eb0 !important; color: white !important; border-color: #0c7eb0 !important; }
+        .manual-input { width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 10px; text-align: center; }
+        .status { font-size: 10px; color: #666; margin-bottom: 6px; }
+        .status.active { color: #0c7eb0; font-weight: bold; }
+        .btn-obtener { width: 100%; padding: 8px; background: #0c7eb0; color: white; border: none; border-radius: 3px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .btn-obtener:disabled { background: #999; cursor: not-allowed; }
+        .progress { font-size: 10px; color: #ff9800; margin-top: 6px; text-align: center; }
+        .progress.success { color: #66b147; }
+        .footer { background: #e0e0e0; text-align: center; padding: 8px; font-size: 8px; color: #666; margin-top: 8px; }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>GRAMET - JetSMART | Cruces de Cordillera | FL250</h1>
+    </div>
+    
     <div class="container">
-        <div class="header">
-            <h1>✈️ GRAMET - JetSMART</h1>
-            <p>Cruces de Cordillera | FL250</p>
-        </div>
-        
-        <div class="zona">
-            <div class="zona-title">🔼 ZONA NORTE</div>
-            <div class="columnas">
-                <div class="columna oe">
-                    <div class="columna-titulo">→ O→E (Azul)</div>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'GEKAL', 'O→E')">GEKAL</button>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'MIBAS', 'O→E')">MIBAS</button>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'GUVOL', 'O→E')">GUVOL</button>
-                </div>
-                <div class="columna eo">
-                    <div class="columna-titulo">← E→O (Naranja)</div>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'GEKAL', 'E→O')">GEKAL</button>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'MIBAS', 'E→O')">MIBAS</button>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'ASIMO', 'E→O')">ASIMO</button>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'UMKAL', 'E→O')">UMKAL</button>
-                </div>
+        <div class="zona-titulo">🔼 ZONA NORTE</div>
+        <div class="zona-container">
+            <div class="columna">
+                <div class="flecha oe-flecha">→</div>
+                <div class="columna-titulo oe-titulo">O→E</div>
+                <button class="cruce-btn" data-codigo="SCAT_SANC" data-nombre="GEKAL (O→E)" onclick="seleccionar(this)">GEKAL</button>
+                <button class="cruce-btn" data-codigo="SCSE_SANU" data-nombre="MIBAS (O→E)" onclick="seleccionar(this)">MIBAS</button>
+                <button class="cruce-btn" data-codigo="SCVM_SANU" data-nombre="GUVOL (O→E)" onclick="seleccionar(this)">GUVOL</button>
+            </div>
+            <div class="columna">
+                <div class="flecha eo-flecha">←</div>
+                <div class="columna-titulo eo-titulo">E→O</div>
+                <button class="cruce-btn" data-codigo="SANC_SCAT" data-nombre="GEKAL (E→O)" onclick="seleccionar(this)">GEKAL</button>
+                <button class="cruce-btn" data-codigo="SANU_SCSE" data-nombre="MIBAS (E→O)" onclick="seleccionar(this)">MIBAS</button>
+                <button class="cruce-btn" data-codigo="SANU_SCVM" data-nombre="ASIMO (E→O)" onclick="seleccionar(this)">ASIMO</button>
+                <button class="cruce-btn" data-codigo="SAME_SCVM" data-nombre="UMKAL (E→O)" onclick="seleccionar(this)">UMKAL</button>
             </div>
         </div>
         
-        <div class="zona">
-            <div class="zona-title">🔽 ZONA SUR</div>
-            <div class="columnas">
-                <div class="columna oe">
-                    <div class="columna-titulo">→ O→E (Azul)</div>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'NEBEG', 'O→E')">NEBEG</button>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'ALBAL', 'O→E')">ALBAL</button>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'ANKON', 'O→E')">ANKON</button>
-                </div>
-                <div class="columna eo">
-                    <div class="columna-titulo">← E→O (Naranja)</div>
-                    <button class="cruce-btn" onclick="seleccionar(this, 'ANKON', 'E→O')">ANKON</button>
-                </div>
+        <div class="zona-titulo">🔽 ZONA SUR</div>
+        <div class="zona-container">
+            <div class="columna">
+                <div class="flecha oe-flecha">→</div>
+                <div class="columna-titulo oe-titulo">O→E</div>
+                <button class="cruce-btn" data-codigo="SCEL_SAMR" data-nombre="NEBEG (O→E)" onclick="seleccionar(this)">NEBEG</button>
+                <button class="cruce-btn" data-codigo="SCRG_SAME" data-nombre="ALBAL (O→E)" onclick="seleccionar(this)">ALBAL</button>
+                <button class="cruce-btn" data-codigo="SCIC_SAMM" data-nombre="ANKON (O→E)" onclick="seleccionar(this)">ANKON</button>
+            </div>
+            <div class="columna">
+                <div class="flecha eo-flecha">←</div>
+                <div class="columna-titulo eo-titulo">E→O</div>
+                <button class="cruce-btn" data-codigo="SAMM_SCIC" data-nombre="ANKON (E→O)" onclick="seleccionar(this)">ANKON</button>
             </div>
         </div>
         
         <div class="controles">
-            <div>
-                <strong>⏰ Horas:</strong>
-                <div class="horas-grid">
-                    <button class="hora-btn" onclick="seleccionarHora(event, 0)">0</button>
-                    <button class="hora-btn" onclick="seleccionarHora(event, 1)">1</button>
-                    <button class="hora-btn" onclick="seleccionarHora(event, 2)">2</button>
-                    <button class="hora-btn" onclick="seleccionarHora(event, 3)">3</button>
-                    <button class="hora-btn" onclick="seleccionarHora(event, 4)">4</button>
-                    <button class="hora-btn" onclick="seleccionarHora(event, 5)">5</button>
-                    <button class="hora-btn" onclick="seleccionarHora(event, 6)">6</button>
-                </div>
+            <label class="control-label">Horas:</label>
+            <div class="horas-botones">
+                <button class="hora-btn" onclick="setHoras(0)">0</button>
+                <button class="hora-btn" onclick="setHoras(1)">1</button>
+                <button class="hora-btn" onclick="setHoras(2)">2</button>
+                <button class="hora-btn" onclick="setHoras(3)">3</button>
+                <button class="hora-btn" onclick="setHoras(4)">4</button>
+                <button class="hora-btn" onclick="setHoras(5)">5</button>
+                <button class="hora-btn" onclick="setHoras(6)">6</button>
+                <label>Manual: <input type="number" id="horasManual" class="manual-input" value="0" min="0" max="23"></label>
             </div>
-            
-            <div id="seleccionado" class="seleccionado" style="display: none;">
-                <strong id="seleccionadoTexto"></strong>
-            </div>
-            
-            <button class="btn-obtener" onclick="obtenerGramet()">🚀 Obtener GRAMET</button>
-            
-            <div id="estado" class="estado"></div>
+            <div class="status" id="status">Selecciona un cruce</div>
+            <button class="btn-obtener" id="btnObtener" onclick="obtenerGramet()">Obtener GRAMET</button>
+            <div class="progress" id="progress"></div>
         </div>
-        
-        <div id="resultados" class="resultados"></div>
+    </div>
+    
+    <div class="footer">
+        JetSMART Operations | Auto-relleno OGIMET
     </div>
     
     <script>
-        let crucesSeleccionados = {};
-        let horasSeleccionadas = null;
+    var cruce_seleccionado = '';
+    var nombre_cruce = '';
+    
+    function seleccionar(btn) {
+        var codigo = btn.getAttribute('data-codigo');
+        var nombre = btn.getAttribute('data-nombre');
         
-        function seleccionar(btn, cruce, direccion) {
-            const key = cruce + '_' + direccion;
-            
-            if (crucesSeleccionados[key]) {
-                delete crucesSeleccionados[key];
-                btn.classList.remove('active');
-            } else {
-                crucesSeleccionados[key] = { cruce, direccion };
-                btn.classList.add('active');
-            }
-            
-            actualizarSeleccionado();
+        var todos = document.querySelectorAll('.cruce-btn');
+        for (var i = 0; i < todos.length; i++) {
+            todos[i].classList.remove('selected-oe', 'selected-eo');
         }
         
-        function seleccionarHora(ev, hora) {
-            horasSeleccionadas = hora;
-            document.querySelectorAll('.hora-btn').forEach(btn => btn.classList.remove('active'));
-            ev.target.classList.add('active');
-            actualizarSeleccionado();
+        cruce_seleccionado = codigo;
+        nombre_cruce = nombre;
+        
+        // Detectar dirección: buscar el patrón específico
+        // "E→O" o "E->O" va de Este a Oeste (naranja)
+        // "O→E" o "O->E" va de Oeste a Este (azul)
+        if (nombre.indexOf('O→E') > -1 || nombre.indexOf('O->E') > -1) {
+            btn.classList.add('selected-oe');  // Azul para O→E
+        } else if (nombre.indexOf('E→O') > -1 || nombre.indexOf('E->O') > -1) {
+            btn.classList.add('selected-eo');  // Naranja para E→O
         }
         
-        function actualizarSeleccionado() {
-            const textos = Object.entries(crucesSeleccionados).map(([_, { cruce, direccion }]) => `${cruce} (${direccion})`);
-            if (textos.length > 0 && horasSeleccionadas !== null) {
-                document.getElementById('seleccionado').style.display = 'block';
-                document.getElementById('seleccionadoTexto').textContent = `✓ Seleccionado: ${textos.join(', ')} | ${horasSeleccionadas}h`;
-            } else {
-                document.getElementById('seleccionado').style.display = 'none';
-            }
+        document.getElementById('status').textContent = 'OK: ' + nombre;
+        document.getElementById('status').classList.add('active');
+    }
+    
+    function setHoras(h) {
+        document.getElementById('horasManual').value = h;
+        
+        var todos = document.querySelectorAll('.hora-btn');
+        for (var i = 0; i < todos.length; i++) {
+            todos[i].classList.remove('selected-hora');
         }
         
-        async function obtenerGramet() {
-            if (Object.keys(crucesSeleccionados).length === 0 || horasSeleccionadas === null) {
-                document.getElementById('estado').className = 'estado error';
-                document.getElementById('estado').textContent = '⚠️ Selecciona un cruce y horas';
-                return;
-            }
-            
-            const btn = document.querySelector('.btn-obtener');
-            const estado = document.getElementById('estado');
-            const resultados = document.getElementById('resultados');
-            
-            btn.disabled = true;
-            resultados.innerHTML = '';
-            
-            const cruces = Object.values(crucesSeleccionados);
-            let exitos = 0;
-            
-            for (let i = 0; i < cruces.length; i++) {
-                const { cruce, direccion } = cruces[i];
-                const nombre = cruce + ' (' + direccion + ')';
-                
-                estado.className = 'estado loading';
-                estado.textContent = `⏳ Obteniendo ${nombre}... (${i+1}/${cruces.length}) - puede tardar ~30 seg`;
-                
-                try {
-                    const resp = await fetch('/obtener-gramet', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            gramet: cruce,
-                            nombre: nombre,
-                            horas: horasSeleccionadas
-                        })
-                    });
-                    const data = await resp.json();
-                    
-                    if (data.success && data.imagen) {
-                        exitos++;
-                        const div = document.createElement('div');
-                        div.className = 'resultado';
-                        div.innerHTML = `
-                            <h3>📊 ${nombre} | ${horasSeleccionadas}h | FL250</h3>
-                            <img src="data:image/png;base64,${data.imagen}" onclick="abrirImagen(this)" title="Click para ampliar">
-                            <div class="hint">Click en la imagen para ampliar</div>
-                        `;
-                        resultados.appendChild(div);
-                    } else {
-                        const div = document.createElement('div');
-                        div.className = 'resultado';
-                        div.innerHTML = `<h3>❌ ${nombre}</h3><p>${data.message || 'Error desconocido'}</p>`;
-                        resultados.appendChild(div);
-                    }
-                } catch (err) {
-                    const div = document.createElement('div');
-                    div.className = 'resultado';
-                    div.innerHTML = `<h3>❌ ${nombre}</h3><p>${err.message}</p>`;
-                    resultados.appendChild(div);
+        event.target.classList.add('selected-hora');
+    }
+    
+    function obtenerGramet() {
+        if (!cruce_seleccionado) {
+            alert('Selecciona un cruce');
+            return;
+        }
+        
+        var horas = document.getElementById('horasManual').value;
+        var btn = document.getElementById('btnObtener');
+        var progress = document.getElementById('progress');
+        
+        btn.disabled = true;
+        progress.textContent = 'Cargando...';
+        progress.classList.remove('success');
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/obtener-gramet', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (data.success) {
+                    progress.textContent = '✅ GRAMET obtenido';
+                    progress.classList.add('success');
+                } else {
+                    progress.textContent = 'Error: ' + data.message;
                 }
+            } catch(e) {
+                progress.textContent = 'Error de conexion';
             }
-            
-            estado.className = exitos > 0 ? 'estado success' : 'estado error';
-            estado.textContent = exitos > 0 ? `✓ ${exitos}/${cruces.length} GRAMET obtenidos` : '❌ No se pudo obtener GRAMET';
             btn.disabled = false;
-        }
-        
-        function abrirImagen(img) {
-            const win = window.open('');
-            win.document.write('<img src="' + img.src + '" style="max-width:100%">');
-        }
+        };
+        xhr.send(JSON.stringify({
+            gramet: cruce_seleccionado,
+            nombre: nombre_cruce,
+            horas: horas
+        }));
+    }
     </script>
 </body>
 </html>'''
-    return render_template_string(html)
+    return html
 
 @app.route('/obtener-gramet', methods=['POST'])
 def obtener_gramet():
+    global driver_global
     try:
-        from playwright.sync_api import sync_playwright
-        
         data = request.json
         gramet = data.get('gramet')
         nombre = data.get('nombre')
-        horas = str(data.get('horas'))
+        horas = data.get('horas')
         
-        print(f"\n[{time.strftime('%H:%M:%S')}] Solicitud: {nombre} - {horas}h")
+        print(f"\n[{time.strftime('%H:%M:%S')}] {nombre}")
         
-        with sync_playwright() as p:
-            browser = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
-            page = browser.new_page()
+        # Crear driver solo si no existe
+        if driver_global is None:
+            options = Options()
+            options.add_experimental_option("detach", True)
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option('useAutomationExtension', False)
             
-            try:
-                # 1. Abrir formulario OGIMET
-                page.goto("https://www.ogimet.com/gramet_aero.phtml", timeout=30000)
-                page.wait_for_load_state("domcontentloaded")
-                
-                # 2. Rellenar campos (igual que la app desktop)
-                inputs = page.query_selector_all("input[type='text']")
-                print(f"Campos encontrados: {len(inputs)}")
-                
-                if len(inputs) < 3:
-                    browser.close()
-                    return jsonify({'success': False, 'message': 'Formulario OGIMET no cargó bien'})
-                
-                # Campo 1: Lugar (GRAMET)
-                inputs[0].fill(gramet)
-                # Campo 2: Hora inicio
-                inputs[1].fill(horas)
-                # Campo 3: Hora final
-                inputs[2].fill(horas)
-                
-                # Nivel de vuelo -> 250
-                for inp in inputs:
-                    val = inp.get_attribute("value")
-                    if val in ["100", "250"]:
-                        inp.fill("250")
-                        break
-                
-                # 3. Enviar formulario
-                page.click("input[type='submit']")
-                page.wait_for_load_state("load", timeout=60000)
-                
-                # 4. Buscar específicamente la imagen del GRAMET
-                #    (su ruta contiene 'gramet' o '/tmp/', NO el logo del sitio)
-                page.wait_for_selector("img", timeout=30000)
-                
-                gramet_src = None
-                for intento in range(10):
-                    for img in page.query_selector_all("img"):
-                        src = img.get_attribute("src") or ""
-                        if "gramet" in src.lower() or "/tmp/" in src.lower():
-                            gramet_src = src
-                            break
-                    if gramet_src:
-                        break
-                    time.sleep(3)
-                
-                if not gramet_src:
-                    browser.close()
-                    return jsonify({'success': False, 'message': 'No se encontró la imagen GRAMET en la página de resultados'})
-                
-                from urllib.parse import urljoin
-                abs_url = urljoin("https://www.ogimet.com/", gramet_src)
-                print(f"Imagen GRAMET: {abs_url}")
-                
-                # 5. Descargar la imagen (OGIMET tarda en generarla,
-                #    reintentar hasta ~2 minutos)
-                img_bytes = None
-                for intento in range(24):
-                    try:
-                        resp = page.context.request.get(abs_url)
-                        content_type = resp.headers.get("content-type", "")
-                        body = resp.body()
-                        if resp.ok and "image" in content_type and len(body) > 10000:
-                            img_bytes = body
-                            break
-                    except Exception:
-                        pass
-                    print(f"GRAMET aún generándose... {intento+1}/24")
-                    time.sleep(5)
-                
-                if img_bytes is None:
-                    browser.close()
-                    return jsonify({'success': False, 'message': 'OGIMET no generó la imagen a tiempo. Intenta de nuevo en unos minutos.'})
-                
-                img_b64 = base64.b64encode(img_bytes).decode('utf-8')
-                
-                browser.close()
-                print(f"✓ GRAMET obtenido: {nombre}")
-                return jsonify({'success': True, 'message': nombre, 'imagen': img_b64})
-                
-            except Exception as e:
-                browser.close()
-                raise e
-            
+            driver_global = webdriver.Edge(
+                service=Service(EdgeChromiumDriverManager().install()),
+                options=options
+            )
+        
+        driver = driver_global
+        
+        # Abrir OGIMET en nueva pestaña
+        driver.execute_script("window.open('https://www.ogimet.com/gramet_aero.phtml');")
+        
+        # Cambiar a la nueva pestaña
+        driver.switch_to.window(driver.window_handles[-1])
+        
+        # Esperar a que cargue el formulario (sin cerrar popup)
+        time.sleep(1)
+        
+        wait = WebDriverWait(driver, 10)
+        inputs = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "input[type='text']")))
+        
+        if len(inputs) > 0:
+            inputs[0].clear()
+            inputs[0].send_keys(gramet)
+        if len(inputs) > 1:
+            inputs[1].clear()
+            inputs[1].send_keys(horas)
+        if len(inputs) > 2:
+            inputs[2].clear()
+            inputs[2].send_keys(horas)
+        
+        for inp in inputs:
+            if inp.get_attribute("value") in ["100", "250"]:
+                inp.clear()
+                inp.send_keys("250")
+                break
+        
+        submit_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='submit'] | //button[contains(text(), 'Enviar')]")))
+        submit_btn.click()
+        
+        # Esperar a que cargue el GRAMET y aparezca el popup
+        time.sleep(1)  # Reducido a 1 segundo
+        
+        # Intento 1: Click directo en el botón
+        try:
+            driver.execute_script("""
+                var buttons = document.querySelectorAll('button');
+                for (var btn of buttons) {
+                    if (btn.textContent.includes('Entendido')) {
+                        btn.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+                    }
+                }
+            """)
+        except:
+            pass
+        
+        time.sleep(1)
+        
+        # Intento 2: Click con trigger
+        try:
+            driver.execute_script("""
+                var buttons = document.querySelectorAll('button');
+                for (var btn of buttons) {
+                    if (btn.textContent.includes('Entendido')) {
+                        btn.click();
+                        btn.click();
+                        btn.click();
+                    }
+                }
+            """)
+        except:
+            pass
+        
+        time.sleep(1)
+        
+        # Intento 3: Buscar por clase o ID
+        try:
+            driver.execute_script("""
+                // Buscar cualquier elemento que pueda cerrar el popup
+                var allElements = document.querySelectorAll('*');
+                for (var el of allElements) {
+                    if ((el.textContent === 'Entendido' || el.textContent.includes('Entendido')) && 
+                        (el.tagName === 'BUTTON' || el.className.includes('btn'))) {
+                        el.click();
+                    }
+                }
+            """)
+        except:
+            pass
+        
+        return jsonify({'success': True, 'message': nombre})
     except Exception as e:
-        error_msg = str(e)
-        print(f"❌ Error: {error_msg}")
-        return jsonify({'success': False, 'message': error_msg})
+        return jsonify({'success': False, 'message': str(e)})
 
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
-    print(f"\n✈️ GRAMET Web - http://localhost:{port}\n")
+    url = f"http://localhost:{port}"
+    
+    print(f"\nGRAMET Web - {url}\n")
+    
+    # Abrir navegador en un thread separado para que no bloquee el servidor
+    def open_browser():
+        time.sleep(2)  # Esperar a que el servidor inicie
+        webbrowser.open(url)
+    
+    browser_thread = threading.Thread(target=open_browser, daemon=True)
+    browser_thread.start()
+    
+    # Iniciar servidor
     app.run(debug=False, host='0.0.0.0', port=port, threaded=True)
