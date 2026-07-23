@@ -17,8 +17,6 @@ from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
 
-OGIMET_FL = "250"  # Flight level fijo para cruces de cordillera
-
 
 # ---------------------------------------------------------------------------
 # UI principal
@@ -57,6 +55,7 @@ def index():
         .hora-btn:hover { border-color: #0c7eb0; background: #f0f7ff; }
         .hora-btn.selected-hora { background: #0c7eb0 !important; color: white !important; border-color: #0c7eb0 !important; }
         .manual-input { width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 10px; text-align: center; }
+        .fl-select { padding: 5px 8px; border: 1px solid #0c7eb0; border-radius: 3px; font-size: 12px; font-weight: bold; color: #0c3c7d; background: white; cursor: pointer; margin-bottom: 4px; }
         .status { font-size: 10px; color: #666; margin-bottom: 6px; }
         .status.active { color: #0c7eb0; font-weight: bold; }
         .btn-obtener { width: 100%; padding: 8px; background: #0c7eb0; color: white; border: none; border-radius: 3px; font-size: 12px; font-weight: bold; cursor: pointer; }
@@ -79,7 +78,7 @@ def index():
 </head>
 <body>
     <div class="header">
-        <h1>GRAMET - JetSMART | Cruces de Cordillera | FL250</h1>
+        <h1>GRAMET - JetSMART | Cruces de Cordillera | <span id="flHeader">FL250</span></h1>
     </div>
 
     <div class="container">
@@ -119,7 +118,9 @@ def index():
         </div>
 
         <div class="controles">
-            <label class="control-label">Horas:</label>
+            <label class="control-label">Nivel de vuelo:</label>
+            <select id="flSelect" class="fl-select" onchange="setFL()"></select>
+            <label class="control-label" style="margin-top:8px;">Horas:</label>
             <div class="horas-botones">
                 <button class="hora-btn" onclick="setHoras(0)">0</button>
                 <button class="hora-btn" onclick="setHoras(1)">1</button>
@@ -153,6 +154,26 @@ def index():
     var seleccionados = [];
     var cola = [];      // imagenes por cargar, en orden
     var idxCarga = 0;
+
+    // Poblar el selector de nivel de vuelo (FL200 a FL400) y helpers
+    (function initFL() {
+        var sel = document.getElementById('flSelect');
+        for (var fl = 200; fl <= 400; fl += 10) {
+            var opt = document.createElement('option');
+            opt.value = String(fl);
+            opt.textContent = 'FL' + fl;
+            if (fl === 250) opt.selected = true;
+            sel.appendChild(opt);
+        }
+    })();
+
+    function getFL() {
+        return document.getElementById('flSelect').value;
+    }
+
+    function setFL() {
+        document.getElementById('flHeader').textContent = 'FL' + getFL();
+    }
 
     function seleccionar(btn) {
         var codigo = btn.getAttribute('data-codigo');
@@ -205,6 +226,7 @@ def index():
             return;
         }
         var horas = document.getElementById('horasManual').value;
+        var fl = getFL();
         var cont = document.getElementById('resultados');
         cont.innerHTML = '';
         cola = [];
@@ -233,7 +255,7 @@ def index():
 
                 var cap = document.createElement('div');
                 cap.className = 'resultado-cap ' + it.sentido;
-                cap.textContent = it.nombre.replace('->', '\u2192') + '  ·  +' + horas + 'h';
+                cap.textContent = it.nombre.replace('->', '\u2192') + '  ·  +' + horas + 'h  ·  FL' + fl;
                 bloque.appendChild(cap);
 
                 var msg = document.createElement('div');
@@ -244,7 +266,8 @@ def index():
                 var img = document.createElement('img');
                 img.setAttribute('data-src',
                     '/gramet?icao=' + encodeURIComponent(it.codigo) +
-                    '&horas=' + encodeURIComponent(horas));
+                    '&horas=' + encodeURIComponent(horas) +
+                    '&fl=' + encodeURIComponent(fl));
                 (function(imgEl, msgEl) {
                     imgEl.onload = function() {
                         msgEl.style.display = 'none';
@@ -351,7 +374,7 @@ def index():
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(13);
         doc.setTextColor(12, 60, 125);
-        doc.text('GRAMET - JetSMART | Cruces de Cordillera | FL250', margin, y);
+        doc.text('GRAMET - JetSMART | Cruces de Cordillera', margin, y);
         y += 5;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
@@ -459,6 +482,10 @@ def ver():
 def gramet():
     icao = request.args.get('icao', '')
     horas = request.args.get('horas', '0')
+    fl = request.args.get('fl', '250')
+    # Validar nivel de vuelo: entero entre 200 y 400; si no, usar 250
+    if not (fl.isdigit() and 200 <= int(fl) <= 400):
+        fl = '250'
 
     if not icao:
         abort(400, "Falta el parametro icao")
@@ -467,7 +494,7 @@ def gramet():
     ogimet_url = (
         "https://www.ogimet.com/display_gramet.php"
         f"?icao={icao}&hini={horas}&tref={tref}&hfin={horas}"
-        f"&fl={OGIMET_FL}&enviar=Enviar"
+        f"&fl={fl}&enviar=Enviar"
     )
 
     print(f"[{time.strftime('%H:%M:%S')}] {icao} -> {ogimet_url}")
