@@ -38,24 +38,25 @@ def index():
         .zona-titulo { font-size: 12px; font-weight: bold; color: #0c3c7d; margin: 8px 0 6px 0; }
         .zona-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
         .columna { background: white; border-radius: 6px; padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .columna-titulo { font-size: 11px; font-weight: bold; text-align: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e0e0e0; }
+        .columna-titulo { font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e0e0e0; }
         .oe-titulo { color: #0c7eb0; }
         .eo-titulo { color: #ff9800; }
-        .flecha { font-size: 16px; text-align: center; margin-bottom: 4px; font-weight: bold; }
-        .oe-flecha { color: #0c7eb0; }
-        .eo-flecha { color: #ff9800; }
+        .dir-arrow { display: inline-block; transform: scaleX(1.7); margin: 0 4px; font-weight: bold; }
         .cruce-btn { display: block; width: 100%; padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 3px; background: white; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; }
         .cruce-btn:hover { border-color: #0c7eb0; background: #f0f7ff; }
         .cruce-btn.selected-oe { background: #0c7eb0 !important; color: white !important; border-color: #0c7eb0 !important; }
         .cruce-btn.selected-eo { background: #ff9800 !important; color: white !important; border-color: #ff9800 !important; }
         .controles { background: #e3f2fd; padding: 10px; border-radius: 6px; margin: 8px 0; }
         .control-label { font-size: 10px; font-weight: bold; color: #0c3c7d; margin-bottom: 4px; display: block; }
+        .fila-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .ctrl-grupo { display: flex; align-items: center; gap: 6px; }
+        .ctrl-grupo .control-label { margin-bottom: 0; }
         .horas-botones { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
         .hora-btn { padding: 4px 8px; background: white; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; font-size: 10px; font-weight: bold; color: #0c3c7d; }
         .hora-btn:hover { border-color: #0c7eb0; background: #f0f7ff; }
         .hora-btn.selected-hora { background: #0c7eb0 !important; color: white !important; border-color: #0c7eb0 !important; }
-        .manual-input { width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 10px; text-align: center; }
-        .fl-select { padding: 3px 6px; border: 1px solid #0c7eb0; border-radius: 3px; font-size: 11px; font-weight: bold; color: #0c3c7d; background: white; cursor: pointer; }
+        .manual-input { width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px; text-align: center; }
+        .fl-select { padding: 4px 8px; border: 1px solid #0c7eb0; border-radius: 3px; font-size: 12px; font-weight: bold; color: #0c3c7d; background: white; cursor: pointer; }
         .status { font-size: 10px; color: #666; margin-bottom: 6px; }
         .status.active { color: #0c7eb0; font-weight: bold; }
         .btn-obtener { width: 100%; padding: 8px; background: #0c7eb0; color: white; border: none; border-radius: 3px; font-size: 12px; font-weight: bold; cursor: pointer; }
@@ -85,15 +86,13 @@ def index():
         <div class="zona-titulo">ZONA NORTE</div>
         <div class="zona-container">
             <div class="columna">
-                <div class="flecha oe-flecha">-&gt;</div>
-                <div class="columna-titulo oe-titulo">O-&gt;E</div>
+                <div class="columna-titulo oe-titulo">O <span class="dir-arrow">&#8594;</span> E</div>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SCAT_SANC" data-nombre="GEKAL (O-&gt;E)" onclick="seleccionar(this)">GEKAL</button>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SCSE_SANU" data-nombre="MIBAS (O-&gt;E)" onclick="seleccionar(this)">MIBAS</button>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SCVM_SANU" data-nombre="GUVOL (O-&gt;E)" onclick="seleccionar(this)">GUVOL</button>
             </div>
             <div class="columna">
-                <div class="flecha eo-flecha">&lt;-</div>
-                <div class="columna-titulo eo-titulo">E-&gt;O</div>
+                <div class="columna-titulo eo-titulo">E <span class="dir-arrow">&#8594;</span> O</div>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SANC_SCAT" data-nombre="GEKAL (E-&gt;O)" onclick="seleccionar(this)">GEKAL</button>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SANU_SCSE" data-nombre="MIBAS (E-&gt;O)" onclick="seleccionar(this)">MIBAS</button>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SANU_SCVM" data-nombre="ASIMO (E-&gt;O)" onclick="seleccionar(this)">ASIMO</button>
@@ -104,23 +103,30 @@ def index():
         <div class="zona-titulo">ZONA SUR</div>
         <div class="zona-container">
             <div class="columna">
-                <div class="flecha oe-flecha">-&gt;</div>
-                <div class="columna-titulo oe-titulo">O-&gt;E</div>
+                <div class="columna-titulo oe-titulo">O <span class="dir-arrow">&#8594;</span> E</div>
                 <button class="cruce-btn" data-zona="Sur" data-codigo="SCEL_SAMR" data-nombre="NEBEG (O-&gt;E)" onclick="seleccionar(this)">NEBEG</button>
                 <button class="cruce-btn" data-zona="Sur" data-codigo="SCRG_SAME" data-nombre="ALBAL (O-&gt;E)" onclick="seleccionar(this)">ALBAL</button>
                 <button class="cruce-btn" data-zona="Sur" data-codigo="SCIC_SAMM" data-nombre="ANKON (O-&gt;E)" onclick="seleccionar(this)">ANKON</button>
             </div>
             <div class="columna">
-                <div class="flecha eo-flecha">&lt;-</div>
-                <div class="columna-titulo eo-titulo">E-&gt;O</div>
+                <div class="columna-titulo eo-titulo">E <span class="dir-arrow">&#8594;</span> O</div>
                 <button class="cruce-btn" data-zona="Sur" data-codigo="SAMM_SCIC" data-nombre="ANKON (E-&gt;O)" onclick="seleccionar(this)">ANKON</button>
             </div>
         </div>
 
         <div class="controles">
-            <label class="control-label">Nivel de vuelo y horas:</label>
+            <div class="fila-top">
+                <div class="ctrl-grupo">
+                    <span class="control-label">FL:</span>
+                    <select id="flSelect" class="fl-select" onchange="setFL()"></select>
+                </div>
+                <div class="ctrl-grupo">
+                    <span class="control-label">Manual:</span>
+                    <input type="number" id="horasManual" class="manual-input" value="0" min="0" max="24">
+                </div>
+            </div>
+            <label class="control-label">Horas:</label>
             <div class="horas-botones">
-                <select id="flSelect" class="fl-select" onchange="setFL()"></select>
                 <button class="hora-btn" onclick="setHoras(0)">0</button>
                 <button class="hora-btn" onclick="setHoras(1)">1</button>
                 <button class="hora-btn" onclick="setHoras(2)">2</button>
@@ -132,7 +138,6 @@ def index():
                 <button class="hora-btn" onclick="setHoras(10)">10</button>
                 <button class="hora-btn" onclick="setHoras(12)">12</button>
                 <button class="hora-btn" onclick="setHoras(24)">24</button>
-                <label>Manual: <input type="number" id="horasManual" class="manual-input" value="0" min="0" max="24"></label>
             </div>
             <div class="status" id="status">Selecciona uno o m&aacute;s cruces</div>
             <button class="btn-obtener" onclick="obtenerGramet()">Obtener GRAMET</button>
