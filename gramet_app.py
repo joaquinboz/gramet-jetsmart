@@ -48,7 +48,7 @@ def index():
         .cruce-btn.selected-eo { background: #ff9800 !important; color: white !important; border-color: #ff9800 !important; }
         .controles { background: #e3f2fd; padding: 10px; border-radius: 6px; margin: 8px 0; }
         .control-label { font-size: 10px; font-weight: bold; color: #0c3c7d; margin-bottom: 4px; display: block; }
-        .fila-top { display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-bottom: 8px; }
+        .fila-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 8px; }
         .ctrl-grupo { display: flex; align-items: center; gap: 6px; }
         .ctrl-grupo .control-label { margin-bottom: 0; }
         .horas-botones { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
@@ -86,13 +86,13 @@ def index():
         <div class="zona-titulo">ZONA NORTE</div>
         <div class="zona-container">
             <div class="columna">
-                <div class="columna-titulo oe-titulo"><span>O-E</span><span class="dir-arrow-big">&#8594;</span></div>
+                <div class="columna-titulo oe-titulo"><span>O</span><span class="dir-arrow-big">&#8594;</span><span>E</span></div>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SCAT_SANC" data-nombre="GEKAL (O-&gt;E)" onclick="seleccionar(this)">GEKAL</button>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SCSE_SANU" data-nombre="MIBAS (O-&gt;E)" onclick="seleccionar(this)">MIBAS</button>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SCVM_SANU" data-nombre="GUVOL (O-&gt;E)" onclick="seleccionar(this)">GUVOL</button>
             </div>
             <div class="columna">
-                <div class="columna-titulo eo-titulo"><span class="dir-arrow-big">&#8592;</span><span>E-O</span></div>
+                <div class="columna-titulo eo-titulo"><span>O</span><span class="dir-arrow-big">&#8592;</span><span>E</span></div>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SANC_SCAT" data-nombre="GEKAL (E-&gt;O)" onclick="seleccionar(this)">GEKAL</button>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SANU_SCSE" data-nombre="MIBAS (E-&gt;O)" onclick="seleccionar(this)">MIBAS</button>
                 <button class="cruce-btn" data-zona="Norte" data-codigo="SANU_SCVM" data-nombre="ASIMO (E-&gt;O)" onclick="seleccionar(this)">ASIMO</button>
@@ -103,13 +103,13 @@ def index():
         <div class="zona-titulo">ZONA SUR</div>
         <div class="zona-container">
             <div class="columna">
-                <div class="columna-titulo oe-titulo"><span>O-E</span><span class="dir-arrow-big">&#8594;</span></div>
+                <div class="columna-titulo oe-titulo"><span>O</span><span class="dir-arrow-big">&#8594;</span><span>E</span></div>
                 <button class="cruce-btn" data-zona="Sur" data-codigo="SCEL_SAMR" data-nombre="NEBEG (O-&gt;E)" onclick="seleccionar(this)">NEBEG</button>
                 <button class="cruce-btn" data-zona="Sur" data-codigo="SCRG_SAME" data-nombre="ALBAL (O-&gt;E)" onclick="seleccionar(this)">ALBAL</button>
                 <button class="cruce-btn" data-zona="Sur" data-codigo="SCIC_SAMM" data-nombre="ANKON (O-&gt;E)" onclick="seleccionar(this)">ANKON</button>
             </div>
             <div class="columna">
-                <div class="columna-titulo eo-titulo"><span class="dir-arrow-big">&#8592;</span><span>E-O</span></div>
+                <div class="columna-titulo eo-titulo"><span>O</span><span class="dir-arrow-big">&#8592;</span><span>E</span></div>
                 <button class="cruce-btn" data-zona="Sur" data-codigo="SAMM_SCIC" data-nombre="ANKON (E-&gt;O)" onclick="seleccionar(this)">ANKON</button>
             </div>
         </div>
