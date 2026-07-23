@@ -358,119 +358,60 @@ def index():
 @app.route('/obtener-gramet', methods=['POST'])
 def obtener_gramet():
     try:
-        from playwright.sync_api import sync_playwright
-        
+        import requests
+        from urllib.parse import quote
+
         data = request.json
         gramet = data.get('gramet')
         direccion = data.get('direccion')
         nombre = data.get('nombre')
         horas = str(data.get('horas'))
-        
-        # Convertir punto de cruce a ruta OACI (ej: MIBAS O→E -> "SCSE, SANU")
+
+        # Convertir punto de cruce a ruta OACI (ej: MIBAS O→E -> "SCSE_SANU")
         ruta = RUTAS_CRUCES.get((gramet, direccion))
         if not ruta:
             return jsonify({'success': False, 'message': f'No hay ruta definida para {gramet} {direccion}'})
-        lugares = ruta.replace("_", ", ")
-        
-        print(f"\n[{time.strftime('%H:%M:%S')}] Solicitud: {nombre} -> {lugares} - {horas}h")
-        
-        with sync_playwright() as p:
-            browser = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
-            page = browser.new_page()
-            
+
+        # Endpoint directo de OGIMET: genera el GRAMET solo con parámetros en la URL.
+        # icao=ruta, hini=hfin=horas seleccionadas, tref=momento actual (Unix), fl=250
+        tref = int(time.time())
+        ogimet_url = (
+            "https://www.ogimet.com/display_gramet.php"
+            f"?icao={quote(ruta)}&hini={horas}&tref={tref}&hfin={horas}&fl=250&enviar=Enviar"
+        )
+        print(f"\n[{time.strftime('%H:%M:%S')}] {nombre} -> {ruta} ({horas}h) | {ogimet_url}")
+
+        # El servidor actúa de "puente": descarga la imagen desde OGIMET
+        # (con reintentos, porque OGIMET tarda en generarla) y la reenvía en base64,
+        # así el PDF funciona sin problemas de CORS.
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                          '(KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+            'Referer': 'https://www.ogimet.com/gramet_aero.phtml'
+        }
+
+        img_bytes = None
+        ultimo_error = ''
+        for intento in range(20):
             try:
-                # 1. Abrir formulario OGIMET
-                page.goto("https://www.ogimet.com/gramet_aero.phtml", timeout=30000)
-                page.wait_for_load_state("domcontentloaded")
-                
-                # 1b. Cerrar banner de cookies "Entendido" si aparece
-                for texto in ["Entendido", "Aceptar", "Accept", "OK"]:
-                    try:
-                        page.click(f"button:has-text('{texto}')", timeout=2000)
-                        print(f"Banner cerrado: {texto}")
-                        break
-                    except Exception:
-                        pass
-                
-                # 2. Rellenar campos (igual que la app desktop)
-                inputs = page.query_selector_all("input[type='text']")
-                print(f"Campos encontrados: {len(inputs)}")
-                
-                if len(inputs) < 3:
-                    browser.close()
-                    return jsonify({'success': False, 'message': 'Formulario OGIMET no cargó bien'})
-                
-                # Campo 1: Lugares (ruta OACI)
-                inputs[0].fill(lugares)
-                # Campo 2: Hora inicio
-                inputs[1].fill(horas)
-                # Campo 3: Hora final
-                inputs[2].fill(horas)
-                
-                # Nivel de vuelo -> 250
-                for inp in inputs:
-                    val = inp.get_attribute("value")
-                    if val in ["100", "250"]:
-                        inp.fill("250")
-                        break
-                
-                # 3. Enviar formulario
-                page.click("input[type='submit']")
-                page.wait_for_load_state("load", timeout=60000)
-                
-                # 4. Buscar específicamente la imagen del GRAMET
-                #    (su ruta contiene 'gramet' o '/tmp/', NO el logo del sitio)
-                page.wait_for_selector("img", timeout=30000)
-                
-                gramet_src = None
-                for intento in range(10):
-                    for img in page.query_selector_all("img"):
-                        src = img.get_attribute("src") or ""
-                        if "gramet" in src.lower() or "/tmp/" in src.lower():
-                            gramet_src = src
-                            break
-                    if gramet_src:
-                        break
-                    time.sleep(3)
-                
-                if not gramet_src:
-                    browser.close()
-                    return jsonify({'success': False, 'message': 'No se encontró la imagen GRAMET en la página de resultados'})
-                
-                from urllib.parse import urljoin
-                abs_url = urljoin("https://www.ogimet.com/", gramet_src)
-                print(f"Imagen GRAMET: {abs_url}")
-                
-                # 5. Descargar la imagen (OGIMET tarda en generarla,
-                #    reintentar hasta ~2 minutos)
-                img_bytes = None
-                for intento in range(24):
-                    try:
-                        resp = page.context.request.get(abs_url)
-                        content_type = resp.headers.get("content-type", "")
-                        body = resp.body()
-                        if resp.ok and "image" in content_type and len(body) > 10000:
-                            img_bytes = body
-                            break
-                    except Exception:
-                        pass
-                    print(f"GRAMET aún generándose... {intento+1}/24")
-                    time.sleep(5)
-                
-                if img_bytes is None:
-                    browser.close()
-                    return jsonify({'success': False, 'message': 'OGIMET no generó la imagen a tiempo. Intenta de nuevo en unos minutos.'})
-                
-                img_b64 = base64.b64encode(img_bytes).decode('utf-8')
-                
-                browser.close()
-                print(f"✓ GRAMET obtenido: {nombre}")
-                return jsonify({'success': True, 'message': nombre, 'imagen': img_b64})
-                
+                resp = requests.get(ogimet_url, headers=headers, timeout=30)
+                content_type = resp.headers.get('content-type', '')
+                if resp.status_code == 200 and 'image' in content_type and len(resp.content) > 10000:
+                    img_bytes = resp.content
+                    break
+                ultimo_error = f'HTTP {resp.status_code}, tipo {content_type}, {len(resp.content)} bytes'
             except Exception as e:
-                browser.close()
-                raise e
-            
+                ultimo_error = str(e)
+            print(f"GRAMET aún generándose... {intento+1}/20 ({ultimo_error})")
+            time.sleep(5)
+
+        if img_bytes is None:
+            return jsonify({'success': False, 'message': f'OGIMET no generó la imagen. {ultimo_error}'})
+
+        img_b64 = base64.b64encode(img_bytes).decode('utf-8')
+        print(f"✓ GRAMET obtenido: {nombre}")
+        return jsonify({'success': True, 'message': nombre, 'imagen': img_b64})
+
     except Exception as e:
         error_msg = str(e)
         print(f"❌ Error: {error_msg}")
