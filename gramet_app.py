@@ -50,12 +50,12 @@ def index():
         .cruce-btn.selected-eo { background: #ff9800 !important; color: white !important; border-color: #ff9800 !important; }
         .controles { background: #e3f2fd; padding: 10px; border-radius: 6px; margin: 8px 0; }
         .control-label { font-size: 10px; font-weight: bold; color: #0c3c7d; margin-bottom: 4px; display: block; }
-        .horas-botones { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+        .horas-botones { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
         .hora-btn { padding: 4px 8px; background: white; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; font-size: 10px; font-weight: bold; color: #0c3c7d; }
         .hora-btn:hover { border-color: #0c7eb0; background: #f0f7ff; }
         .hora-btn.selected-hora { background: #0c7eb0 !important; color: white !important; border-color: #0c7eb0 !important; }
         .manual-input { width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 10px; text-align: center; }
-        .fl-select { padding: 5px 8px; border: 1px solid #0c7eb0; border-radius: 3px; font-size: 12px; font-weight: bold; color: #0c3c7d; background: white; cursor: pointer; margin-bottom: 4px; }
+        .fl-select { padding: 3px 6px; border: 1px solid #0c7eb0; border-radius: 3px; font-size: 11px; font-weight: bold; color: #0c3c7d; background: white; cursor: pointer; }
         .status { font-size: 10px; color: #666; margin-bottom: 6px; }
         .status.active { color: #0c7eb0; font-weight: bold; }
         .btn-obtener { width: 100%; padding: 8px; background: #0c7eb0; color: white; border: none; border-radius: 3px; font-size: 12px; font-weight: bold; cursor: pointer; }
@@ -118,10 +118,9 @@ def index():
         </div>
 
         <div class="controles">
-            <label class="control-label">Nivel de vuelo:</label>
-            <select id="flSelect" class="fl-select" onchange="setFL()"></select>
-            <label class="control-label" style="margin-top:8px;">Horas:</label>
+            <label class="control-label">Nivel de vuelo y horas:</label>
             <div class="horas-botones">
+                <select id="flSelect" class="fl-select" onchange="setFL()"></select>
                 <button class="hora-btn" onclick="setHoras(0)">0</button>
                 <button class="hora-btn" onclick="setHoras(1)">1</button>
                 <button class="hora-btn" onclick="setHoras(2)">2</button>
