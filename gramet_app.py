@@ -72,7 +72,10 @@ def index():
         .resultado-cap.eo { color: #ff9800; }
         .resultado-msg { font-size: 11px; color: #ff9800; padding: 18px; text-align: center; }
         .resultado img { width: 100%; height: auto; display: none; border-radius: 4px; }
+        .btn-pdf { width: 100%; padding: 10px; margin: 4px 0 8px 0; background: #c0392b; color: white; border: none; border-radius: 3px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .btn-pdf:hover { background: #a93226; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="header">
@@ -136,6 +139,8 @@ def index():
         </div>
 
         <div id="resultados"></div>
+
+        <button class="btn-pdf" onclick="descargarPDF()">Descargar PDF</button>
     </div>
 
     <div class="footer">
@@ -273,6 +278,131 @@ def index():
     function cargarSiguiente() {
         idxCarga++;
         cargarActual();
+    }
+
+    // ---- Descarga en PDF (client-side, funciona en PC y movil) ----
+    function imgADataURL(img) {
+        var canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        return canvas.toDataURL('image/png');
+    }
+
+    function descargarPDF() {
+        var grupos = document.querySelectorAll('#resultados .grupo');
+        if (grupos.length === 0) {
+            alert('Primero genera al menos un GRAMET.');
+            return;
+        }
+
+        // Verificar que no haya ninguno todavia generandose
+        var pendiente = false;
+        document.querySelectorAll('#resultados .resultado').forEach(function(res) {
+            var img = res.querySelector('img');
+            var msg = res.querySelector('.resultado-msg');
+            var enProceso = msg && msg.style.display !== 'none' &&
+                (msg.textContent.indexOf('Generando') > -1 || msg.textContent.indexOf('cola') > -1);
+            if (enProceso && (!img || img.naturalWidth === 0)) pendiente = true;
+        });
+        if (pendiente) {
+            alert('Espera a que terminen de generarse todos los GRAMET antes de descargar.');
+            return;
+        }
+
+        var jsPDFctor = window.jspdf ? window.jspdf.jsPDF : null;
+        if (!jsPDFctor) {
+            alert('No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.');
+            return;
+        }
+
+        var doc = new jsPDFctor({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        var pageW = 210, pageH = 297, margin = 12;
+        var contentW = pageW - margin * 2;
+        var y = 14;
+
+        function espacio(nec) {
+            if (y + nec > pageH - 14) { doc.addPage(); y = 14; }
+        }
+
+        // Encabezado breve
+        var ahora = new Date();
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(12, 60, 125);
+        doc.text('GRAMET - JetSMART | Cruces de Cordillera | FL250', margin, y);
+        y += 5;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        doc.text('Generado: ' + ahora.toLocaleString(), margin, y);
+        y += 6;
+
+        // Recorrer grupos en el mismo orden que en pantalla
+        grupos.forEach(function(grupo) {
+            var gt = grupo.querySelector('.grupo-titulo');
+            var titulo = gt ? gt.textContent : '';
+
+            var conImagen = [];
+            grupo.querySelectorAll('.resultado').forEach(function(res) {
+                var img = res.querySelector('img');
+                if (img && img.naturalWidth > 0) conImagen.push(res);
+            });
+            if (conImagen.length === 0) return;
+
+            espacio(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(12, 60, 125);
+            doc.text(titulo, margin, y);
+            y += 5;
+
+            conImagen.forEach(function(res) {
+                var cap = res.querySelector('.resultado-cap');
+                var img = res.querySelector('img');
+                // El PDF usa fuente estandar: reemplazar la flecha unicode por ASCII
+                var texto = (cap ? cap.textContent : '').replace(/\u2192/g, '->');
+                var esOE = cap && cap.classList.contains('oe');
+
+                espacio(6);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(9);
+                if (esOE) doc.setTextColor(12, 126, 176); else doc.setTextColor(255, 152, 0);
+                doc.text(texto, margin, y);
+                y += 3;
+
+                var w = contentW;
+                var h = contentW * (img.naturalHeight / img.naturalWidth);
+                var maxH = pageH - 14 - 14;
+                if (h > maxH) { h = maxH; w = h * (img.naturalWidth / img.naturalHeight); }
+                espacio(h + 4);
+                var x = margin + (contentW - w) / 2;
+                doc.addImage(imgADataURL(img), 'PNG', x, y, w, h);
+                y += h + 6;
+            });
+        });
+
+        // Texto legal (leido del pie de pagina)
+        var discEl = document.querySelector('.footer .disclaimer');
+        var disc = discEl ? discEl.textContent : '';
+        espacio(18);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7);
+        doc.setTextColor(120);
+        var lineas = doc.splitTextToSize(disc, contentW);
+        doc.text(lineas, margin, y);
+
+        // Firma discreta abajo a la derecha de la ultima pagina
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(180);
+        doc.text('JBOZ', pageW - margin, pageH - 8, { align: 'right' });
+
+        var f = ahora.getFullYear() +
+                ('0' + (ahora.getMonth() + 1)).slice(-2) +
+                ('0' + ahora.getDate()).slice(-2);
+        doc.save('GRAMET_JetSMART_' + f + '.pdf');
     }
     </script>
 </body>
