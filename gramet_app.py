@@ -341,68 +341,63 @@ def index():
             return;
         }
 
-        var doc = new jsPDFctor({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        var pageW = 210, pageH = 297, margin = 12;
+        var doc = new jsPDFctor({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        var pageW = 297, pageH = 210, margin = 12;
         var contentW = pageW - margin * 2;
         var ahora = new Date();
+        var y = 14;
 
-        // ---- PRIMERA HOJA: portada con fecha/hora de generacion ----
+        // ---- Encabezado en la PRIMERA hoja, unido a la primera imagen ----
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(18);
+        doc.setFontSize(13);
         doc.setTextColor(12, 60, 125);
-        doc.text('GRAMET - JetSMART', pageW / 2, 42, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text('Cruces de Cordillera | FL250', pageW / 2, 51, { align: 'center' });
+        doc.text('GRAMET - JetSMART | Cruces de Cordillera | FL250', margin, y);
+        y += 5;
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        doc.setTextColor(90);
-        doc.text('Generado: ' + ahora.toLocaleString(), pageW / 2, 66, { align: 'center' });
-        doc.setFontSize(9);
-        doc.setTextColor(130);
-        doc.text(items.length + ' GRAMET incluido(s)', pageW / 2, 73, { align: 'center' });
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        doc.text('Generado: ' + ahora.toLocaleString(), margin, y);
+        y += 8;
 
-        // ---- UNA HOJA POR CADA GRAMET (rotulo + imagen juntos) ----
-        items.forEach(function(it) {
-            doc.addPage();
-            var y = 18;
+        // ---- Un GRAMET por hoja (el primero comparte hoja con el encabezado) ----
+        items.forEach(function(it, idx) {
+            if (idx > 0) { doc.addPage(); y = 14; }
 
-            // Zona (pequena, arriba)
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(12, 60, 125);
             doc.text(it.zona, margin, y);
-            y += 7;
-
-            // Rotulo: ruta + sentido + horas (color segun sentido)
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(13);
-            if (it.esOE) doc.setTextColor(12, 126, 176); else doc.setTextColor(255, 152, 0);
-            doc.text(it.texto, margin, y);
             y += 6;
 
-            // Imagen a ancho completo (limitada por el alto de la hoja)
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            if (it.esOE) doc.setTextColor(12, 126, 176); else doc.setTextColor(255, 152, 0);
+            doc.text(it.texto, margin, y);
+            y += 5;
+
             var w = contentW;
             var h = contentW * (it.img.naturalHeight / it.img.naturalWidth);
             var maxH = pageH - y - 14;
             if (h > maxH) { h = maxH; w = h * (it.img.naturalWidth / it.img.naturalHeight); }
             var x = margin + (contentW - w) / 2;
             doc.addImage(imgADataURL(it.img), 'PNG', x, y, w, h);
+            y += h + 8;
         });
 
-        // ---- ULTIMA HOJA: texto legal con la firma abajo ----
-        doc.addPage();
+        // ---- Texto legal integrado tras el ultimo GRAMET; firma abajo ----
         var discEl = document.querySelector('.footer .disclaimer');
         var disc = discEl ? discEl.textContent : '';
         doc.setFont('helvetica', 'italic');
-        doc.setFontSize(9);
-        doc.setTextColor(90);
+        doc.setFontSize(8);
+        doc.setTextColor(120);
         var lineas = doc.splitTextToSize(disc, contentW);
-        doc.text(lineas, margin, 45);
+        if (y + lineas.length * 3.2 + 6 > pageH - 8) { doc.addPage(); y = 18; }
+        doc.text(lineas, margin, y);
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(180);
-        doc.text('JBOZ', pageW - margin, pageH - 14, { align: 'right' });
+        doc.text('JBOZ', pageW - margin, pageH - 8, { align: 'right' });
 
         var f = ahora.getFullYear() +
                 ('0' + (ahora.getMonth() + 1)).slice(-2) +
