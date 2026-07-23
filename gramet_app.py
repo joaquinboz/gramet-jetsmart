@@ -362,6 +362,7 @@ def index():
         // ---- Un GRAMET por hoja (el primero comparte hoja con el encabezado) ----
         items.forEach(function(it, idx) {
             if (idx > 0) { doc.addPage(); y = 14; }
+            var esUltimo = (idx === items.length - 1);
 
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
@@ -377,21 +378,22 @@ def index():
 
             var w = contentW;
             var h = contentW * (it.img.naturalHeight / it.img.naturalWidth);
-            var maxH = pageH - y - 14;
+            // En el ultimo, reservar espacio abajo para el texto legal + firma
+            var reserva = esUltimo ? 26 : 14;
+            var maxH = pageH - y - reserva;
             if (h > maxH) { h = maxH; w = h * (it.img.naturalWidth / it.img.naturalHeight); }
             var x = margin + (contentW - w) / 2;
             doc.addImage(imgADataURL(it.img), 'PNG', x, y, w, h);
-            y += h + 8;
+            y += h + 6;
         });
 
-        // ---- Texto legal integrado tras el ultimo GRAMET; firma abajo ----
+        // ---- Texto legal integrado tras el ultimo GRAMET, en la misma pagina ----
         var discEl = document.querySelector('.footer .disclaimer');
         var disc = discEl ? discEl.textContent : '';
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(8);
         doc.setTextColor(120);
         var lineas = doc.splitTextToSize(disc, contentW);
-        if (y + lineas.length * 3.2 + 6 > pageH - 8) { doc.addPage(); y = 18; }
         doc.text(lineas, margin, y);
 
         doc.setFont('helvetica', 'normal');
