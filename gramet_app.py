@@ -317,87 +317,92 @@ def index():
             return;
         }
 
+        // Recopilar los GRAMET generados, en orden, con su zona
+        var items = [];
+        grupos.forEach(function(grupo) {
+            var gt = grupo.querySelector('.grupo-titulo');
+            var zona = gt ? gt.textContent : '';
+            grupo.querySelectorAll('.resultado').forEach(function(res) {
+                var img = res.querySelector('img');
+                if (img && img.naturalWidth > 0) {
+                    var cap = res.querySelector('.resultado-cap');
+                    items.push({
+                        zona: zona,
+                        // Fuente estandar del PDF: flecha unicode -> ASCII
+                        texto: (cap ? cap.textContent : '').replace(/\u2192/g, '->'),
+                        esOE: cap && cap.classList.contains('oe'),
+                        img: img
+                    });
+                }
+            });
+        });
+        if (items.length === 0) {
+            alert('No hay GRAMET generados para exportar.');
+            return;
+        }
+
         var doc = new jsPDFctor({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         var pageW = 210, pageH = 297, margin = 12;
         var contentW = pageW - margin * 2;
-        var y = 14;
-
-        function espacio(nec) {
-            if (y + nec > pageH - 14) { doc.addPage(); y = 14; }
-        }
-
-        // Encabezado breve
         var ahora = new Date();
+
+        // ---- PRIMERA HOJA: portada con fecha/hora de generacion ----
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
+        doc.setFontSize(18);
         doc.setTextColor(12, 60, 125);
-        doc.text('GRAMET - JetSMART | Cruces de Cordillera | FL250', margin, y);
-        y += 5;
+        doc.text('GRAMET - JetSMART', pageW / 2, 42, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text('Cruces de Cordillera | FL250', pageW / 2, 51, { align: 'center' });
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(120);
-        doc.text('Generado: ' + ahora.toLocaleString(), margin, y);
-        y += 6;
+        doc.setFontSize(11);
+        doc.setTextColor(90);
+        doc.text('Generado: ' + ahora.toLocaleString(), pageW / 2, 66, { align: 'center' });
+        doc.setFontSize(9);
+        doc.setTextColor(130);
+        doc.text(items.length + ' GRAMET incluido(s)', pageW / 2, 73, { align: 'center' });
 
-        // Recorrer grupos en el mismo orden que en pantalla
-        grupos.forEach(function(grupo) {
-            var gt = grupo.querySelector('.grupo-titulo');
-            var titulo = gt ? gt.textContent : '';
+        // ---- UNA HOJA POR CADA GRAMET (rotulo + imagen juntos) ----
+        items.forEach(function(it) {
+            doc.addPage();
+            var y = 18;
 
-            var conImagen = [];
-            grupo.querySelectorAll('.resultado').forEach(function(res) {
-                var img = res.querySelector('img');
-                if (img && img.naturalWidth > 0) conImagen.push(res);
-            });
-            if (conImagen.length === 0) return;
-
-            espacio(10);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
+            // Zona (pequena, arriba)
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
             doc.setTextColor(12, 60, 125);
-            doc.text(titulo, margin, y);
-            y += 5;
+            doc.text(it.zona, margin, y);
+            y += 7;
 
-            conImagen.forEach(function(res) {
-                var cap = res.querySelector('.resultado-cap');
-                var img = res.querySelector('img');
-                // El PDF usa fuente estandar: reemplazar la flecha unicode por ASCII
-                var texto = (cap ? cap.textContent : '').replace(/\u2192/g, '->');
-                var esOE = cap && cap.classList.contains('oe');
+            // Rotulo: ruta + sentido + horas (color segun sentido)
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(13);
+            if (it.esOE) doc.setTextColor(12, 126, 176); else doc.setTextColor(255, 152, 0);
+            doc.text(it.texto, margin, y);
+            y += 6;
 
-                espacio(6);
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(9);
-                if (esOE) doc.setTextColor(12, 126, 176); else doc.setTextColor(255, 152, 0);
-                doc.text(texto, margin, y);
-                y += 3;
-
-                var w = contentW;
-                var h = contentW * (img.naturalHeight / img.naturalWidth);
-                var maxH = pageH - 14 - 14;
-                if (h > maxH) { h = maxH; w = h * (img.naturalWidth / img.naturalHeight); }
-                espacio(h + 4);
-                var x = margin + (contentW - w) / 2;
-                doc.addImage(imgADataURL(img), 'PNG', x, y, w, h);
-                y += h + 6;
-            });
+            // Imagen a ancho completo (limitada por el alto de la hoja)
+            var w = contentW;
+            var h = contentW * (it.img.naturalHeight / it.img.naturalWidth);
+            var maxH = pageH - y - 14;
+            if (h > maxH) { h = maxH; w = h * (it.img.naturalWidth / it.img.naturalHeight); }
+            var x = margin + (contentW - w) / 2;
+            doc.addImage(imgADataURL(it.img), 'PNG', x, y, w, h);
         });
 
-        // Texto legal (leido del pie de pagina)
+        // ---- ULTIMA HOJA: texto legal con la firma abajo ----
+        doc.addPage();
         var discEl = document.querySelector('.footer .disclaimer');
         var disc = discEl ? discEl.textContent : '';
-        espacio(18);
         doc.setFont('helvetica', 'italic');
-        doc.setFontSize(7);
-        doc.setTextColor(120);
+        doc.setFontSize(9);
+        doc.setTextColor(90);
         var lineas = doc.splitTextToSize(disc, contentW);
-        doc.text(lineas, margin, y);
+        doc.text(lineas, margin, 45);
 
-        // Firma discreta abajo a la derecha de la ultima pagina
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(180);
-        doc.text('JBOZ', pageW - margin, pageH - 8, { align: 'right' });
+        doc.text('JBOZ', pageW - margin, pageH - 14, { align: 'right' });
 
         var f = ahora.getFullYear() +
                 ('0' + (ahora.getMonth() + 1)).slice(-2) +
