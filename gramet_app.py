@@ -13,9 +13,14 @@ Arquitectura Opcion A:
 
 from flask import Flask, request, Response, abort
 import time
+import urllib.request
 from playwright.sync_api import sync_playwright
 
 app = Flask(__name__)
+
+# Producto de onda de montaña (turbulencia MTW) de meteochile - ruta fija SCEL_SAME
+MW_BASE = "https://archivos.meteochile.gob.cl/portaldmc/metaer/cartas_rutas_aereas"
+MW_ROUTE = "SCEL_SAME"
 
 
 # ---------------------------------------------------------------------------
@@ -308,8 +313,78 @@ def index():
             cont.appendChild(grupo);
         }
 
-        // Arrancar la carga secuencial
+        // ---- Onda de montana: slot(s) de 3h mas cercano(s) a la hora objetivo ----
+        agregarOndaMontana(cont, parseInt(horas, 10) || 0);
+
+        // Arrancar la carga secuencial (GRAMET). La onda de montana carga en paralelo.
         cargarActual();
+    }
+
+    function agregarOndaMontana(cont, offset) {
+        function pad2(n) { return (n < 10 ? '0' : '') + n; }
+        function fmtFecha(d) {
+            return '' + d.getUTCFullYear() + pad2(d.getUTCMonth() + 1) + pad2(d.getUTCDate());
+        }
+
+        // Hora objetivo = hora UTC actual (en punto) + offset
+        var now = new Date();
+        var target = new Date(Date.UTC(
+            now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+            now.getUTCHours() + offset, 0, 0));
+
+        // Slots cada 3h: exacto -> uno; intermedio -> los dos que lo rodean
+        var rem = target.getUTCHours() % 3;
+        var slots;
+        if (rem === 0) {
+            slots = [target];
+        } else {
+            var lower = new Date(target.getTime() - rem * 3600000);
+            var upper = new Date(lower.getTime() + 3 * 3600000);
+            slots = [lower, upper];
+        }
+
+        var grupo = document.createElement('div');
+        grupo.className = 'grupo';
+        var titulo = document.createElement('div');
+        titulo.className = 'grupo-titulo';
+        titulo.textContent = 'ONDA DE MONTAÑA';
+        grupo.appendChild(titulo);
+
+        slots.forEach(function(slot) {
+            var corrida = fmtFecha(slot) + '00';
+            var validez = fmtFecha(slot) + pad2(slot.getUTCHours());
+
+            var bloque = document.createElement('div');
+            bloque.className = 'resultado';
+
+            var cap = document.createElement('div');
+            cap.className = 'resultado-cap oe';
+            cap.textContent = 'Válido ' + pad2(slot.getUTCHours()) + ':00 UTC';
+            bloque.appendChild(cap);
+
+            var msg = document.createElement('div');
+            msg.className = 'resultado-msg';
+            msg.textContent = 'Cargando onda de montaña...';
+            bloque.appendChild(msg);
+
+            var img = document.createElement('img');
+            (function(imgEl, msgEl) {
+                imgEl.onload = function() {
+                    msgEl.style.display = 'none';
+                    imgEl.style.display = 'block';
+                };
+                imgEl.onerror = function() {
+                    msgEl.textContent = 'Onda de montaña no disponible para esta hora.';
+                };
+            })(img, msg);
+            // Carga en paralelo (es un PNG estatico via proxy, no usa Playwright)
+            img.src = '/mtw?corrida=' + corrida + '&validez=' + validez;
+            bloque.appendChild(img);
+
+            grupo.appendChild(bloque);
+        });
+
+        cont.appendChild(grupo);
     }
 
     function cargarActual() {
@@ -347,7 +422,9 @@ def index():
             var img = res.querySelector('img');
             var msg = res.querySelector('.resultado-msg');
             var enProceso = msg && msg.style.display !== 'none' &&
-                (msg.textContent.indexOf('Generando') > -1 || msg.textContent.indexOf('cola') > -1);
+                (msg.textContent.indexOf('Generando') > -1 ||
+                 msg.textContent.indexOf('cola') > -1 ||
+                 msg.textContent.indexOf('Cargando') > -1);
             if (enProceso && (!img || img.naturalWidth === 0)) pendiente = true;
         });
         if (pendiente) {
@@ -583,6 +660,43 @@ def capturar_gramet(url):
             return png
         finally:
             browser.close()
+
+
+# ---------------------------------------------------------------------------
+# Proxy de "Onda de montana" (meteochile) - PNG estatico, ruta fija SCEL_SAME
+# ---------------------------------------------------------------------------
+MTW_RUTA = "SCEL_SAME"
+
+@app.route('/mtw')
+def mtw():
+    corrida = request.args.get('corrida', '')
+    validez = request.args.get('validez', '')
+    # Ambos deben ser YYYYMMDDHH (10 digitos)
+    if not (corrida.isdigit() and validez.isdigit()
+            and len(corrida) == 10 and len(validez) == 10):
+        abort(400, "Parametros invalidos")
+
+    url = (
+        "https://archivos.meteochile.gob.cl/portaldmc/metaer/cartas_rutas_aereas/"
+        f"Turbulence_MTW_Route_{MTW_RUTA}_{corrida}_{validez}.png"
+    )
+
+    print(f"[{time.strftime('%H:%M:%S')}] MTW -> {url}")
+
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            ctype = r.headers.get('Content-Type', '')
+            data = r.read()
+    except Exception as e:
+        print(f"  MTW no disponible: {e}")
+        abort(404, "Onda de montana no disponible")
+
+    # Si no es imagen (p.ej. pagina de error), tratar como no disponible
+    if 'image' not in ctype.lower():
+        abort(404, "Onda de montana no disponible")
+
+    return Response(data, mimetype='image/png')
 
 
 if __name__ == '__main__':
