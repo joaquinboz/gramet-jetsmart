@@ -127,7 +127,7 @@ def index():
                     <input type="number" id="horasManual" class="manual-input" value="0" min="0" max="24">
                 </div>
             </div>
-            <label class="control-label">Horas &mdash; <span id="utcBase">--:00</span> UTC + :</label>
+            <label class="control-label"><span id="utcBase">--:00</span> UTC + :</label>
             <div class="horas-botones">
                 <button class="hora-btn" onclick="setHoras(0)">0</button>
                 <button class="hora-btn" onclick="setHoras(1)">1</button>
