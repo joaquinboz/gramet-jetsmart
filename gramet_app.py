@@ -350,8 +350,12 @@ def index():
         titulo.textContent = 'ONDA DE MONTAÑA';
         grupo.appendChild(titulo);
 
+        // La corrida es SIEMPRE la de las 00Z de HOY (una sola corrida del dia).
+        // La validez puede ser de hoy o, si cruza medianoche, de manana.
+        var corridaBase = fmtFecha(now) + '00';
+
         slots.forEach(function(slot) {
-            var corrida = fmtFecha(slot) + '00';
+            var corrida = corridaBase;
             var validez = fmtFecha(slot) + pad2(slot.getUTCHours());
 
             var bloque = document.createElement('div');
