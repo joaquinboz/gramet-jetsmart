@@ -41,7 +41,8 @@ def index():
         .columna-titulo { font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .oe-titulo { color: #0c7eb0; }
         .eo-titulo { color: #ff9800; }
-        .dir-arrow-big { font-size: 22px; font-weight: 900; line-height: 1; display: inline-block; transform: scaleX(1.5); }
+        .dir-arrow-big { font-size: 20px; font-weight: 900; line-height: 1; display: inline-block; transform: scaleX(1.5) translateY(-2px); }
+        .bloque-tiempo { width: fit-content; max-width: 100%; }
         .cruce-btn { display: block; width: 100%; padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 3px; background: white; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; }
         .cruce-btn:hover { border-color: #0c7eb0; background: #f0f7ff; }
         .cruce-btn.selected-oe { background: #0c7eb0 !important; color: white !important; border-color: #0c7eb0 !important; }
@@ -115,6 +116,7 @@ def index():
         </div>
 
         <div class="controles">
+            <div class="bloque-tiempo">
             <div class="fila-top">
                 <div class="ctrl-grupo">
                     <span class="control-label">FL:</span>
@@ -138,6 +140,7 @@ def index():
                 <button class="hora-btn" onclick="setHoras(10)">10</button>
                 <button class="hora-btn" onclick="setHoras(12)">12</button>
                 <button class="hora-btn" onclick="setHoras(24)">24</button>
+            </div>
             </div>
             <div class="status" id="status">Selecciona uno o m&aacute;s cruces</div>
             <button class="btn-obtener" onclick="obtenerGramet()">Obtener GRAMET</button>
