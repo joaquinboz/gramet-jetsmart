@@ -50,6 +50,8 @@ def index():
         .controles { background: #e3f2fd; padding: 10px; border-radius: 6px; margin: 8px 0; }
         .control-label { font-size: 10px; font-weight: bold; color: #0c3c7d; margin-bottom: 4px; display: block; }
         .fila-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 8px; }
+        .fila-utc { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 4px; }
+        .fila-utc .control-label { margin-bottom: 0; }
         .ctrl-grupo { display: flex; align-items: center; gap: 6px; }
         .ctrl-grupo .control-label { margin-bottom: 0; }
         .horas-botones { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
@@ -122,12 +124,14 @@ def index():
                     <span class="control-label">FL:</span>
                     <select id="flSelect" class="fl-select" onchange="setFL()"></select>
                 </div>
+            </div>
+            <div class="fila-utc">
+                <label class="control-label"><span id="utcBase">--:00</span> UTC + :</label>
                 <div class="ctrl-grupo">
                     <span class="control-label">Manual:</span>
                     <input type="number" id="horasManual" class="manual-input" value="0" min="0" max="24">
                 </div>
             </div>
-            <label class="control-label"><span id="utcBase">--:00</span> UTC + :</label>
             <div class="horas-botones">
                 <button class="hora-btn" onclick="setHoras(0)">0</button>
                 <button class="hora-btn" onclick="setHoras(1)">1</button>
