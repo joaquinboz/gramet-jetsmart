@@ -127,7 +127,7 @@ def index():
                     <input type="number" id="horasManual" class="manual-input" value="0" min="0" max="24">
                 </div>
             </div>
-            <label class="control-label">Horas:</label>
+            <label class="control-label">Horas &mdash; <span id="utcBase">--:00</span> UTC + :</label>
             <div class="horas-botones">
                 <button class="hora-btn" onclick="setHoras(0)">0</button>
                 <button class="hora-btn" onclick="setHoras(1)">1</button>
@@ -181,6 +181,16 @@ def index():
     function setFL() {
         document.getElementById('flHeader').textContent = 'FL' + getFL();
     }
+
+    // Mostrar la hora UTC actual (sin minutos) como base a la que OGIMET suma el offset
+    function actualizarUTC() {
+        var h = new Date().getUTCHours();
+        var hh = (h < 10 ? '0' : '') + h;
+        var el = document.getElementById('utcBase');
+        if (el) el.textContent = hh + ':00';
+    }
+    actualizarUTC();
+    setInterval(actualizarUTC, 30000);
 
     function seleccionar(btn) {
         var codigo = btn.getAttribute('data-codigo');
@@ -497,7 +507,8 @@ def gramet():
     if not icao:
         abort(400, "Falta el parametro icao")
 
-    tref = int(time.time())  # hora de referencia = ahora (epoch UTC)
+    # Base = inicio de la hora UTC actual (sin minutos). OGIMET le suma el offset (hini/hfin).
+    tref = (int(time.time()) // 3600) * 3600
     ogimet_url = (
         "https://www.ogimet.com/display_gramet.php"
         f"?icao={icao}&hini={horas}&tref={tref}&hfin={horas}"
